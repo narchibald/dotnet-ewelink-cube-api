@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eWeLink.Cube.Api", "Src\eWeLink.Cube.Api.csproj", "{7D01E86B-D1D9-42C6-9BD4-B7A47073211D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eWeLink.Cube.Api.Tests", "Tests\eWeLink.Cube.Api.Tests\eWeLink.Cube.Api.Tests.csproj", "{1BFC4F81-5179-4263-A326-5BD8B6345AF5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7D01E86B-D1D9-42C6-9BD4-B7A47073211D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D01E86B-D1D9-42C6-9BD4-B7A47073211D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D01E86B-D1D9-42C6-9BD4-B7A47073211D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D01E86B-D1D9-42C6-9BD4-B7A47073211D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1BFC4F81-5179-4263-A326-5BD8B6345AF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BFC4F81-5179-4263-A326-5BD8B6345AF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1BFC4F81-5179-4263-A326-5BD8B6345AF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1BFC4F81-5179-4263-A326-5BD8B6345AF5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
