@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using EWeLink.Cube.Api.Models.Converters;
 using Newtonsoft.Json;
 
-namespace EWeLink.Cube.Api.Models
+namespace EWeLink.Cube.Api.Models.Devices
 {
     [JsonConverter(typeof(SubDeviceConverter))]
     public interface ISubDevice

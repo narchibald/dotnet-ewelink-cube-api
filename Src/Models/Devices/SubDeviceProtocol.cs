@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace EWeLink.Cube.Api.Models;
+namespace EWeLink.Cube.Api.Models.Devices;
 
 public enum SubDeviceProtocol
 {

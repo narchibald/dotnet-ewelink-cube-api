@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using EWeLink.Cube.Api.Models.Devices;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

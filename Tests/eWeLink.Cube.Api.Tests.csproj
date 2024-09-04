@@ -7,6 +7,8 @@
 
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
+        <AssemblyName>EWeLink.Cube.Api.Tests</AssemblyName>
+        <RootNamespace>EWeLink.Cube.Api.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

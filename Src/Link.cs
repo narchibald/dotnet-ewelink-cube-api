@@ -3,22 +3,22 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using EWeLink.Cube.Api.Models;
+using EWeLink.Cube.Api.Models.Devices;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api;
 
-public class Link : ILink
+public class Link : ILink, ILinkControl
 {
     private const string BasePath = "open-api/v1/rest/";
     private readonly ILogger<Link> _logger;
     private readonly IHttpClientFactory httpClientFactory;
     private readonly ILogger<Link> logger;
     private int port = 80;
+    private bool portLocked = false; 
 
     public Link(IPAddress ipAddress, string? accessToken, IHttpClientFactory httpClientFactory, ILogger<Link> logger)
     {
@@ -26,11 +26,22 @@ public class Link : ILink
         this.AccessToken = accessToken;
         this.httpClientFactory = httpClientFactory;
         this.logger = logger;
+        Gateway = new Gateway(this);
+        Screen = new Screen(this);
+        Hardware = new Hardware(this);
     }
 
     public IPAddress IpAddress { get; }
 
     public string? AccessToken { get; private set; }
+
+    public IGateway Gateway { get; }
+    
+    public IHardware Hardware { get; }
+    
+    public IScreen Screen { get; }
+
+    public int Port => port;
     
     public async Task<string?> GetAccessToken(CancellationToken? cancellationToken = default)
     {
@@ -70,14 +81,24 @@ public class Link : ILink
 
     public async Task<IReadOnlyList<ISubDevice>> GetDevices()
     {
-        if (AccessToken is null)
-            throw new UnauthorizedAccessException("Access token was not found.");
+        EnsureAccessToken();
 
         var deviceList = (await MakeRequest<Devices>("devices")).List;
         return deviceList;
     }
 
-    private async Task<T> MakeRequest<T>(string path, HttpMethod? method = null,  HttpContent? content = null)
+    public string EnsureAccessToken()
+    {
+        if (AccessToken is null)
+            throw new UnauthorizedAccessException("Access token was not found.");
+        
+        return AccessToken!;
+    }
+
+    async Task<T> ILinkControl.MakeRequest<T>(string path, HttpMethod? method = null, object? content = null)
+        => await MakeRequest<T>(path, method, content);
+
+    private async Task<T> MakeRequest<T>(string path, HttpMethod? method = null, object? content = null)
     {
         async Task<T> TryMakeRequest(int withPort)
         {
@@ -89,7 +110,9 @@ public class Link : ILink
 
             var httpClient = this.httpClientFactory.CreateClient();
             var request = new HttpRequestMessage(method ?? HttpMethod.Get, uri.ToString());
-            request.Content = content ?? new StringContent(string.Empty)
+            
+            var contentAsJson = content is null ? string.Empty : JsonConvert.SerializeObject(content, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            request.Content = new StringContent(contentAsJson)
             {
                 Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
             };
@@ -98,6 +121,7 @@ public class Link : ILink
 
             var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
+            portLocked = true;
             var responseContent = await response.Content.ReadAsStringAsync();
             var responseObject = JsonConvert.DeserializeObject<OpenApiResponse<T>>(responseContent);
             return GetResponseData<T>(responseObject!);
@@ -107,7 +131,7 @@ public class Link : ILink
         {
             return await TryMakeRequest(port);
         }
-        catch (HttpRequestException ex) when (this.port == 80)
+        catch (HttpRequestException ex) when (this.port == 80 && !portLocked)
         {
             logger.LogDebug("Failed to make request. Trying port 8081. reason: {Reason}", ex.Message);
             this.port = 8081;
@@ -140,10 +164,18 @@ public class Link : ILink
         public string? Message { get; set; }
     }
 
+    public class EmptyData
+    {
+    }
+
     public class AccessTokenData
     {
         [JsonProperty("token")]
         public string Token { get; set; }   
+        
+        
+        [JsonProperty("app_name")]
+        public string? AppName { get; set; }
     }
     
     public class Devices

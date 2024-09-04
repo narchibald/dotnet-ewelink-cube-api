@@ -1,6 +1,6 @@
 using EWeLink.Cube.Api.Models.States;
 
-namespace EWeLink.Cube.Api.Models
+namespace EWeLink.Cube.Api.Models.Devices
 {
     public class Tx3c : SubDevice<ThreeStateToggle>
     {

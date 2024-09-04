@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 
-namespace EWeLink.Cube.Api.Models
+namespace EWeLink.Cube.Api.Models.Devices
 {
     public enum CapabilityPermission
     {
