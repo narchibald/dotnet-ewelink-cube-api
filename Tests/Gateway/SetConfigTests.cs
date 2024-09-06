@@ -21,10 +21,10 @@ public class SetConfigTests : HttpRequestTestBase
             data = new { },
             message = "success"
         };
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json");
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json");
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         var result = await link.Gateway.SetConfig(new GatewayConfig(20));
         

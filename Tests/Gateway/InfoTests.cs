@@ -14,7 +14,6 @@ public class InfoTests : HttpRequestTestBase
     {
         // Arrange
         var expectUri = new Uri($"http://{ipAddress}/open-api/v1/rest/bridge");
-        var expectedPowerUpTime = "2024-03-03T12:48:09.989Z";
         var jsonData = new
         {
             error = 0,
@@ -27,10 +26,10 @@ public class InfoTests : HttpRequestTestBase
             },
             message = "success"
         };
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Get && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json");
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Get && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json");
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         var info = await link.Gateway.GetInfo();
         

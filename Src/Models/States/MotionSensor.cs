@@ -6,11 +6,11 @@ namespace EWeLink.Cube.Api.Models.States;
 public class MotionSensor : SubDeviceState
 {
     [JsonProperty("battery")]
-    public BatteryCapability Battery { get; set; }
+    public BatteryCapability? Battery { get; set; }
     
     [JsonProperty("rssi")]
-    public RssiCapability Rssi { get; set; }
+    public RssiCapability? Rssi { get; set; }
     
     [JsonProperty("detect")]
-    public DetectCapability Detect { get; set; }
+    public DetectCapability? Detect { get; set; }
 }

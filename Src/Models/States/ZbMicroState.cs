@@ -6,11 +6,11 @@ namespace EWeLink.Cube.Api.Models.States;
 public class ZbMicroState : SubDeviceState
 {
     [JsonProperty("transmit-power")]
-    public TransmitPowerCapability TransmitPower { get; set; }
+    public TransmitPowerCapability? TransmitPower { get; set; }
     
     [JsonProperty("startup")]
-    public StartupCapability Startup { get; set; }
+    public StartupCapability? Startup { get; set; }
     
     [JsonProperty("power")]
-    public PowerCapability Power { get; set; }
+    public PowerCapability? Power { get; set; }
 }

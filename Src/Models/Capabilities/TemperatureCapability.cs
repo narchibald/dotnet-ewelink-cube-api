@@ -7,6 +7,6 @@ namespace EWeLink.Cube.Api.Models.Capabilities;
 public class TemperatureCapability
 {
     [JsonProperty("temperature")]
-    [JsonConverter(typeof(IntToDecimalConverter))]
+    [JsonConverter(typeof(IntToDecimalConverter), 0)]
     public decimal Value { get; set; }
 }

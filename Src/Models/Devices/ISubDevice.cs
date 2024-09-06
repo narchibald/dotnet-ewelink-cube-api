@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using EWeLink.Cube.Api.Models.Converters;
+using EWeLink.Cube.Api.Models.States;
 using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Devices
@@ -39,13 +40,13 @@ namespace EWeLink.Cube.Api.Models.Devices
     }
 
     public interface ISubDevice<out T> : ISubDevice
-        where T : States.SubDeviceState
+        where T : SubDeviceState
     {
         public T State { get; }
     }
 
     public class SubDevice<T> : SubDevice, ISubDevice<T>
-        where T : States.SubDeviceState
+        where T : SubDeviceState
     {
         [JsonProperty("state")]
         public T State { get; set; } = null!;

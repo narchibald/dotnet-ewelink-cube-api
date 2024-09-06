@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Converters
 {
-    public class IntToDecimalConverter : JsonConverter
+    public class IntToDecimalConverter(int decimalPlaces = 2) : JsonConverter
     {
         /// <inheritdoc/>
         public override bool CanWrite => true;
@@ -21,7 +21,7 @@ namespace EWeLink.Cube.Api.Models.Converters
             }
             else if (value is decimal decimalValue)
             {
-                writer.WriteValue(decimalValue.ToString().Replace(".", string.Empty));
+                writer.WriteValue(decimalValue.ToString($"F{decimalPlaces}").Replace(".", string.Empty));
             }
             else
             {
@@ -53,8 +53,8 @@ namespace EWeLink.Cube.Api.Models.Converters
 
                 return null;
             }
-
-            var value = decimal.Parse(new string(val.Take(val!.Length - 2).Concat(new[] { '.' }).Concat(val.Skip(val.Length - 2)).ToArray()));
+            
+            var value = decimal.Parse(new string(val.Take(val!.Length - decimalPlaces).Concat(new[] { '.' }).Concat(val.Skip(val.Length - decimalPlaces)).ToArray()));
             return Convert.ChangeType(value, nullableType ?? objectType);
         }
 

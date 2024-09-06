@@ -24,11 +24,11 @@ public class PlaySoundTests : HttpRequestTestBase
         };
 
         string? sentJson = null;
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Post && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json",
-            (message, token) => sentJson = message.Content.ReadAsStringAsync().Result);
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Post && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json",
+            (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         var result = await link.Hardware.PlaySound(new PlaySound(SoundResource.Doorbell2, 64, 3));
         
@@ -59,11 +59,11 @@ public class PlaySoundTests : HttpRequestTestBase
         };
 
         string? sentJson = null;
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Post && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json",
-            (message, token) => sentJson = message.Content.ReadAsStringAsync().Result);
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Post && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json",
+            (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         var result = await link.Hardware.PlaySound(new PlayBeep(BeepResource.SystemArmed, 64));
         

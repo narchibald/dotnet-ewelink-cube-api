@@ -45,7 +45,7 @@ public static class EnumExtensions
             var attributes = field.GetCustomAttributes(typeof(EnumMemberAttribute), false);
             if (attributes.Length > 0 && ((EnumMemberAttribute)attributes[0]).Value == enumMemberValue)
             {
-                return (T)field.GetValue(null);
+                return (T)field.GetValue(null)!;
             }
         }
 

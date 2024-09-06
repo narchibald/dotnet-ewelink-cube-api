@@ -14,18 +14,22 @@ namespace EWeLink.Cube.Api;
 public class Link : ILink, ILinkControl
 {
     private const string BasePath = "open-api/v1/rest/";
-    private readonly ILogger<Link> _logger;
     private readonly IHttpClientFactory httpClientFactory;
+    private readonly IDeviceCache deviceCache;
+    private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<Link> logger;
+    private EventStream? eventStream;
     private int port = 80;
     private bool portLocked = false; 
 
-    public Link(IPAddress ipAddress, string? accessToken, IHttpClientFactory httpClientFactory, ILogger<Link> logger)
+    public Link(IPAddress ipAddress, string? accessToken, IHttpClientFactory httpClientFactory, IDeviceCache deviceCache, ILoggerFactory loggerFactory)
     {
         this.IpAddress = ipAddress;
         this.AccessToken = accessToken;
         this.httpClientFactory = httpClientFactory;
-        this.logger = logger;
+        this.deviceCache = deviceCache;
+        this.loggerFactory = loggerFactory;
+        this.logger = loggerFactory.CreateLogger<Link>();
         Gateway = new Gateway(this);
         Screen = new Screen(this);
         Hardware = new Hardware(this);
@@ -78,13 +82,39 @@ public class Link : ILink, ILinkControl
 
         return null;
     }
+    
+    public async Task<ISubDevice?> GetDevice(string serialNumber)
+    {
+        if (!deviceCache.TryGetDevice(serialNumber, out var device))
+        {
+            await GetDevices();
+            deviceCache.TryGetDevice(serialNumber, out device);
+        }
+        
+        return device;
+    }
 
     public async Task<IReadOnlyList<ISubDevice>> GetDevices()
     {
         EnsureAccessToken();
 
         var deviceList = (await MakeRequest<Devices>("devices")).List;
+        deviceCache.UpdateCache(deviceList);
         return deviceList;
+    }
+
+    public async Task<IEventStream> GetEventStream()
+    {
+        EnsureAccessToken();
+
+        if (eventStream == null)
+        {
+            await GetDevices();
+            eventStream = new EventStream(this, httpClientFactory, deviceCache, loggerFactory.CreateLogger<EventStream>());
+        }
+
+        await eventStream.Start();
+        return eventStream;
     }
 
     public string EnsureAccessToken()
@@ -95,7 +125,12 @@ public class Link : ILink, ILinkControl
         return AccessToken!;
     }
 
-    async Task<T> ILinkControl.MakeRequest<T>(string path, HttpMethod? method = null, object? content = null)
+    public void Dispose()
+    {
+        eventStream?.Stop().Wait();
+    }
+
+    async Task<T> ILinkControl.MakeRequest<T>(string path, HttpMethod? method, object? content)
         => await MakeRequest<T>(path, method, content);
 
     private async Task<T> MakeRequest<T>(string path, HttpMethod? method = null, object? content = null)
@@ -164,23 +199,21 @@ public class Link : ILink, ILinkControl
         public string? Message { get; set; }
     }
 
-    public class EmptyData
-    {
-    }
+    public record EmptyData;
 
     public class AccessTokenData
     {
         [JsonProperty("token")]
-        public string Token { get; set; }   
+        public string Token { get; set; } = string.Empty;   
         
         
         [JsonProperty("app_name")]
         public string? AppName { get; set; }
     }
-    
+
     public class Devices
     {
         [JsonProperty("device_list")]
-        public List<SubDevice> List { get; set; }
+        public List<SubDevice> List { get; set; } = new();
     }
 }

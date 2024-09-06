@@ -19,7 +19,7 @@ namespace EWeLink.Cube.Api.Models.Devices
     public class SubDeviceCapability
     {
         [JsonProperty("capability")]
-        public string Capability { get; set; }
+        public string Capability { get; set; } = string.Empty;
 
         [JsonProperty("permission")]
         public CapabilityPermission Permission { get; set; }

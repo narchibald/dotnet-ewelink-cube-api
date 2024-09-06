@@ -6,8 +6,8 @@ namespace EWeLink.Cube.Api.Models.States;
 public class MotionSensorPro : MotionSensor
 {
     [JsonProperty("illumination-level")]
-    public IlluminationLevelCapability IlluminationLevel { get; set; }
+    public IlluminationLevelCapability? IlluminationLevel { get; set; }
     
     [JsonProperty("identify")]
-    public IdentifyCapability Identify { get; set; }
+    public IdentifyCapability? Identify { get; set; }
 }

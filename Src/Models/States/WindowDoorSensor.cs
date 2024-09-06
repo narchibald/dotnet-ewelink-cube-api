@@ -6,11 +6,11 @@ namespace EWeLink.Cube.Api.Models.States;
 public class WindowDoorSensor : SubDeviceState
 {
     [JsonProperty("battery")]
-    public BatteryCapability Battery { get; set; }
+    public BatteryCapability? Battery { get; set; }
     
     [JsonProperty("rssi")]
     public RssiCapability? Rssi { get; set; }
     
-    [JsonProperty("detected")]
-    public DetectCapability Detect { get; set; }
+    [JsonProperty("detect")]
+    public DetectCapability? Detect { get; set; }
 }

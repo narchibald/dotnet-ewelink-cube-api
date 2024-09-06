@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
@@ -7,7 +8,7 @@ using EWeLink.Cube.Api.Models.Devices;
 
 namespace EWeLink.Cube.Api;
 
-public interface ILink
+public interface ILink : IDisposable
 {
     IPAddress IpAddress { get; }
     
@@ -22,8 +23,12 @@ public interface ILink
     IScreen Screen { get; }
 
     Task<string?> GetAccessToken(CancellationToken? cancellationToken = default);
+
+    Task<ISubDevice?> GetDevice(string serialNumber);
     
     Task<IReadOnlyList<ISubDevice>> GetDevices();
+    
+    Task<IEventStream> GetEventStream();
 }
 
 internal interface ILinkControl

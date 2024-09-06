@@ -7,6 +7,6 @@ namespace EWeLink.Cube.Api.Models.States
     public class CameraStreamState : SubDeviceState
     {
         [JsonProperty("camera-stream")]
-        public CameraStreamCapability CameraStream { get; set; }
+        public CameraStreamCapability? CameraStream { get; set; }
     }
 }

@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using EWeLink.Cube.Api.Extensions;
+using EWeLink.Cube.Api.Models.Devices;
 using EWeLink.Cube.Api.Models.States;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -15,7 +16,7 @@ using Newtonsoft.Json.Linq;
 namespace EWeLink.Cube.Api;
 
 public interface ILinkEvent<out T>
-    where T : ISubDeviceState
+    where T : SubDeviceState
 {
     string SerialNumber { get; }
         
@@ -24,8 +25,11 @@ public interface ILinkEvent<out T>
     T State { get; }
 }
 
-internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFactory, ILogger<EventStream> logger)
+internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFactory, IDeviceCache deviceCache, ILogger<EventStream> logger) : IEventStream
 {
+	private CancellationTokenSource? cancellationTokenSource;
+	private Task? monitorTask;
+
 	private enum EventType
 	{
 		None,
@@ -41,7 +45,7 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 		[EnumMember(Value = "id")]
 		Id
 	}
-	
+
 	private enum MessageType
 	{
 		Unknown,
@@ -62,11 +66,37 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 		UpdateDeviceOnline
 	}
 
-    private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-    
-    public event Action<ILinkEvent<ISubDeviceState>>? StateUpdated;
+	public event Action<ILinkEvent<SubDeviceState>>? StateUpdated;
 
-    public async Task Monitor()
+    public Task Start()
+    {
+	    if (monitorTask is not null)
+		    return Task.CompletedTask;
+	    cancellationTokenSource = new CancellationTokenSource();
+	    monitorTask = Task.Factory.StartNew(Monitor, TaskCreationOptions.LongRunning).Unwrap();
+	    return Task.CompletedTask;
+    }
+
+    public Task Stop()
+    {
+	    try
+	    {
+		    cancellationTokenSource?.Cancel();
+		    monitorTask?.Wait();
+	    }
+	    catch (TaskCanceledException)
+	    {
+	    }
+	    
+	    monitorTask?.Dispose();
+	    monitorTask = null;
+	    cancellationTokenSource?.Dispose();
+	    cancellationTokenSource = null;
+	    
+	    return Task.CompletedTask;
+    }
+    
+    private async Task Monitor()
     {
 	    string accessToken = control.EnsureAccessToken();
 
@@ -94,7 +124,7 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 					    if (message is null)
 						    continue;
 					    
-					    if (message.First() == '{' && message.Last() == '}')
+					    if (!string.IsNullOrWhiteSpace(message) && message.First() == '{' && message.Last() == '}')
 					    {
 						    var response = JsonConvert.DeserializeObject<Link.OpenApiResponse<Link.EmptyData>>(message);
 						    if (response is not null && response.Error != 0)
@@ -125,19 +155,25 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 						    continue;
 					    }
 
-					    if (eventData is null)
+					    if (eventData is not null)
 					    {
 						    try
 						    {
 							    var json = JObject.Parse(dataBuffer.ToString());
-							    // TODO handle event types
 							    switch (eventData.MessageType)
 							    {
 								    case MessageType.UpdateDeviceState:
-										await HandleStateUpdate(json);
+									    HandleStateUpdate(json);
 									    break;
-									default:
-										break;
+								    case MessageType.UpdateDeviceOnline:
+									    HandleOnline(json);
+									    break;
+								    case MessageType.AddDevice:
+									    HandleDeviceAdded(json);
+									    break;
+								    case MessageType.DeleteDevice:
+									    HandleDeviceDeleted(json);
+									    break;
 							    }
 						    }
 						    finally
@@ -158,14 +194,41 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 	    }
     }
 
-    private Task HandleStateUpdate(JObject json)
+    private void HandleDeviceAdded(JObject json)
+    {
+	    var addEvent = json.ToObject<AddEvent>();
+	    deviceCache.UpdateCache(addEvent!.Payload);
+    }
+    
+    private void HandleDeviceDeleted(JObject json)
+    {
+	    var deleteEvent = json.ToObject<DeleteEvent>();
+	    deviceCache.DeleteDevice(deleteEvent!.Endpoint.SerialNumber);
+    }
+    
+    private void HandleOnline(JObject json)
+    {
+	    var onlineEvent = json.ToObject<OnlineEvent>();
+	    if (deviceCache.GetDevice(onlineEvent!.Endpoint.SerialNumber) is ISubDevice<SubDeviceState> device)
+	    {
+		    device.Online = onlineEvent.Payload.Online;
+	    }
+    }
+
+    private void HandleStateUpdate(JObject json)
     {
 	    var endPoint = json["endpoint"];
 	    string serial = endPoint!["serial_number"]!.Value<string>()!;
 	    
 	    // look up device by serial to get its model to be able to serialize the payload into the state update
-
-	    return Task.CompletedTask;
+	    if (deviceCache.GetDevice(serial) is ISubDevice<SubDeviceState> device)
+	    {
+		    var stateType = device.State.GetType();
+		    var typedUpdate = typeof(StateUpdateEvent<>).MakeGenericType(stateType);
+		    ILinkEvent<SubDeviceState> linkEvent = (ILinkEvent<SubDeviceState>)json.ToObject(typedUpdate)!;
+		    device.State.Update(linkEvent.State);
+		    StateUpdated?.Invoke(linkEvent);
+	    }
     }
     
     private (EventType eventType, string content) AnalyzeMessage(string message)
@@ -184,8 +247,10 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 		    }
 		    else
 		    {
-			    if (content.Length == 0 && c != ' ')
-				    content.Append(c);
+			    if (content.Length == 0 && c == ' ')
+				    continue;
+			    
+			    content.Append(c);
 		    }
 	    }
 
@@ -213,5 +278,54 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 	    {
 		    return ModuleName + "#" + Version + "#" + MessageType.GetEnumMemberValue();
 	    }
+    }
+
+    private class StateUpdateEvent<T> : ILinkEvent<T>
+		where T : SubDeviceState
+    {
+	    [JsonProperty("endpoint")]
+	    public Endpoint Endpoint { get; set; } = null!;
+	    
+	    [JsonProperty("payload")]
+	    public T Payload { get; set; } = null!;
+	    public string SerialNumber => Endpoint!.SerialNumber;
+	    public string? ThirdPartySerialNumber => Endpoint!.ThirdPartySerialNumber;
+	    public T State => Payload;
+    }
+
+    private class Endpoint
+    {
+	    [JsonProperty("serial_number")]
+	    public string SerialNumber { get; set; } = null!;
+	    
+	    [JsonProperty("third_serial_number")]
+	    public string? ThirdPartySerialNumber { get; set; }
+    }
+
+    private class AddEvent
+    {
+	    [JsonProperty("payload")]
+	    public SubDevice Payload { get; set; } = null!;
+    }
+    
+    private class DeleteEvent
+    {
+	    [JsonProperty("endpoint")]
+	    public Endpoint Endpoint { get; set; } = null!;
+    }
+
+    private class OnlineEvent
+    {
+	    [JsonProperty("endpoint")]
+	    public Endpoint Endpoint { get; set; } = null!;
+	    
+	    [JsonProperty("payload")]
+	    public OnlinePayload Payload { get; set; } = null!;
+    }
+
+    public class OnlinePayload
+    {
+	    [JsonProperty("online")]
+	    public bool Online { get; set; }
     }
 }

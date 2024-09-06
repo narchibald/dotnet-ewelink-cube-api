@@ -9,5 +9,5 @@ public class SwvState : SubDeviceState
     public RssiCapability? Rssi { get; set; }
     
     [JsonProperty("power")]
-    public PowerCapability Power { get; set; }
+    public PowerCapability? Power { get; set; }
 }

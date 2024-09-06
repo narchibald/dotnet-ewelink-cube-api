@@ -24,11 +24,11 @@ public class ScreenTests : HttpRequestTestBase
         };
 
         string? sentJson = null;
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json",
-            (message, token) => sentJson = message.Content.ReadAsStringAsync().Result);
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json",
+            (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         var result = await link.Screen.SetBrightness(ScreenBrightnessMode.Auto);
         
@@ -55,11 +55,11 @@ public class ScreenTests : HttpRequestTestBase
         };
 
         string? sentJson = null;
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json",
-            (message, token) => sentJson = message.Content.ReadAsStringAsync().Result);
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json",
+            (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         var result = await link.Screen.SetBrightness(ScreenBrightnessMode.Manual, 41);
         
@@ -90,11 +90,11 @@ public class ScreenTests : HttpRequestTestBase
         };
 
         string? sentJson = null;
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json",
-            (message, token) => sentJson = message.Content.ReadAsStringAsync().Result);
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json",
+            (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => link.Screen.SetBrightness(ScreenBrightnessMode.Manual, valueToSet));
         
@@ -115,11 +115,11 @@ public class ScreenTests : HttpRequestTestBase
         };
 
         string? sentJson = null;
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json",
-            (message, token) => sentJson = message.Content.ReadAsStringAsync().Result);
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json",
+            (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         var result = await link.Screen.SetDisplay(false);
         
@@ -146,11 +146,11 @@ public class ScreenTests : HttpRequestTestBase
         };
 
         string? sentJson = null;
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json",
-            (message, token) => sentJson = message.Content.ReadAsStringAsync().Result);
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json",
+            (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         var result = await link.Screen.SetDisplay(true, 65);
         
@@ -181,11 +181,11 @@ public class ScreenTests : HttpRequestTestBase
         };
 
         string? sentJson = null;
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json",
-            (message, token) => sentJson = message.Content.ReadAsStringAsync().Result);
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json",
+            (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => link.Screen.SetDisplay(true, setDuration));
         

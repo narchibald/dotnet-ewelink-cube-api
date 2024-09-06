@@ -9,8 +9,8 @@ public class PresenceSensor : SubDeviceState
     public RssiCapability? Rssi { get; set; }
     
     [JsonProperty("detected")]
-    public DetectCapability Detect { get; set; }
+    public DetectCapability? Detect { get; set; }
     
     [JsonProperty("illumination-level")]
-    public IlluminationLevelCapability IlluminationLevel { get; set; }
+    public IlluminationLevelCapability? IlluminationLevel { get; set; }
 }

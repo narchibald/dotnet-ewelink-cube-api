@@ -20,10 +20,10 @@ public class AccessTokenTests : HttpRequestTestBase
             data = new { token = expectedToken },
             message = "success",
         };
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Get && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json");
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Get && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json");
         
         // Act
-        var link = new Link(ipAddress, null, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, null, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 
         var accessToken = await link.GetAccessToken();
 
@@ -52,10 +52,13 @@ public class AccessTokenTests : HttpRequestTestBase
                     message = "success",
                 }) }
             ];
-        ConfigureHttpResponseSequence(responses, message => message.Method == HttpMethod.Get && message.RequestUri.Query == expectUri.Query && message.Content.Headers.ContentType.MediaType == "application/json");
+        ConfigureHttpResponseSequence(responses, message => message.Method == HttpMethod.Get && message.RequestUri!.Query == expectUri.Query && message.Content!.Headers.ContentType!.MediaType == "application/json");
+        
+        Mock<ILoggerFactory> loggerFactory = new();
+        loggerFactory.Setup(factory => factory.CreateLogger(It.IsAny<string>())).Returns(Mock.Of<ILogger>());
         
         // Act
-        var link = new Link(ipAddress, null, HttpClientFactory.Object, Mock.Of<ILogger<Link>>());
+        var link = new Link(ipAddress, null, HttpClientFactory.Object, new DeviceCache(), loggerFactory.Object);
 
         var accessToken = await link.GetAccessToken();
 
