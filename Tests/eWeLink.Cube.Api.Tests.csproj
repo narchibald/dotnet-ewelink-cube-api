@@ -9,6 +9,8 @@
         <IsTestProject>true</IsTestProject>
         <AssemblyName>EWeLink.Cube.Api.Tests</AssemblyName>
         <RootNamespace>EWeLink.Cube.Api.Tests</RootNamespace>
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>..\eWeLink.Cube.Api.snk</AssemblyOriginatorKeyFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -19,6 +21,7 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.0" />
         <PackageReference Include="Moq" Version="4.20.70" />
+        <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
         <PackageReference Include="xunit" Version="2.9.0" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
           <PrivateAssets>all</PrivateAssets>
@@ -32,6 +35,12 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Src\eWeLink.Cube.Api.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\eWeLink.Cube.Api.snk">
+        <Link>eWeLink.Cube.Api.snk</Link>
+      </None>
     </ItemGroup>
 
 </Project>

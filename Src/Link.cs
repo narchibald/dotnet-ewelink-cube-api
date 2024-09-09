@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using EWeLink.Cube.Api.Models.Devices;
+using EWeLink.Cube.Api.Models.States;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -14,6 +15,7 @@ namespace EWeLink.Cube.Api;
 public class Link : ILink, ILinkControl
 {
     private const string BasePath = "open-api/v1/rest/";
+    private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly IHttpClientFactory httpClientFactory;
     private readonly IDeviceCache deviceCache;
     private readonly ILoggerFactory loggerFactory;
@@ -21,6 +23,7 @@ public class Link : ILink, ILinkControl
     private EventStream? eventStream;
     private int port = 80;
     private bool portLocked = false; 
+    private Action<ILink, ILinkEvent<SubDeviceState>>? deviceStateUpdatedEvent;
 
     public Link(IPAddress ipAddress, string? accessToken, IHttpClientFactory httpClientFactory, IDeviceCache deviceCache, ILoggerFactory loggerFactory)
     {
@@ -35,6 +38,33 @@ public class Link : ILink, ILinkControl
         Hardware = new Hardware(this);
     }
 
+    public event Action<ILink, ILinkEvent<SubDeviceState>>? DeviceStateUpdated
+    {
+        add
+        {
+            if (deviceStateUpdatedEvent == null)
+            {
+                Task.Run(async () =>
+                {
+                    await StartEventStream();
+                    this.deviceStateUpdatedEvent += value;
+                });
+            }
+            else
+            {
+                this.deviceStateUpdatedEvent += value;
+            }
+        }
+        remove
+        {
+            this.deviceStateUpdatedEvent -= value;
+            if (deviceStateUpdatedEvent == null)
+            {
+                Task.Run(async () => await StopEventStream());
+            }
+        }
+    }
+        
     public IPAddress IpAddress { get; }
 
     public string? AccessToken { get; private set; }
@@ -103,20 +133,6 @@ public class Link : ILink, ILinkControl
         return deviceList;
     }
 
-    public async Task<IEventStream> GetEventStream()
-    {
-        EnsureAccessToken();
-
-        if (eventStream == null)
-        {
-            await GetDevices();
-            eventStream = new EventStream(this, httpClientFactory, deviceCache, loggerFactory.CreateLogger<EventStream>());
-        }
-
-        await eventStream.Start();
-        return eventStream;
-    }
-
     public string EnsureAccessToken()
     {
         if (AccessToken is null)
@@ -127,11 +143,52 @@ public class Link : ILink, ILinkControl
 
     public void Dispose()
     {
-        eventStream?.Stop().Wait();
+        StopEventStream().Wait();
     }
 
     async Task<T> ILinkControl.MakeRequest<T>(string path, HttpMethod? method, object? content)
         => await MakeRequest<T>(path, method, content);
+
+    private async Task StartEventStream()
+    {
+        EnsureAccessToken();
+
+        await _lock.WaitAsync();
+        try
+        {
+            if (eventStream == null)
+            {
+                await GetDevices();
+                eventStream = new EventStream(this, httpClientFactory, deviceCache, loggerFactory.CreateLogger<EventStream>());
+                eventStream.StateUpdated += OnStreamStateUpdate;
+            }
+
+            await eventStream.Start();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    private void OnStreamStateUpdate(ILinkEvent<SubDeviceState> @event) => deviceStateUpdatedEvent?.Invoke(this, @event);
+
+    private async Task StopEventStream()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            if (eventStream != null)
+            {
+                eventStream.StateUpdated -= OnStreamStateUpdate;
+                await eventStream.Stop();
+            }
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
 
     private async Task<T> MakeRequest<T>(string path, HttpMethod? method = null, object? content = null)
     {

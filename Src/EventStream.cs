@@ -109,78 +109,79 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 	    var client = httpClientFactory.CreateClient();
 
 	    int retryTime = 5;
-	    while (!cancellationTokenSource.IsCancellationRequested)
+	    while (!cancellationTokenSource!.IsCancellationRequested)
 	    {
 		    try
 		    {
 			    logger.LogDebug("Establishing connection");
-			    using (var streamReader = new StreamReader(await client.GetStreamAsync(uri.Uri)))
+			    using var streamReader = new StreamReader(await client.GetStreamAsync(uri.Uri));
+			    EventData? eventData = null;
+			    StringBuilder dataBuffer = new();
+			    while (!streamReader.EndOfStream)
 			    {
-				    EventData? eventData = null;
-				    StringBuilder dataBuffer = new();
-				    while (!streamReader.EndOfStream)
-				    {
-					    var message = await streamReader.ReadLineAsync();
-					    if (message is null)
-						    continue;
+				    var message = await streamReader.ReadLineAsync();
+				    if (message is null)
+					    continue;
 					    
-					    if (!string.IsNullOrWhiteSpace(message) && message.First() == '{' && message.Last() == '}')
+				    if (!string.IsNullOrWhiteSpace(message) && message.First() == '{' && message.Last() == '}')
+				    {
+					    var response = JsonConvert.DeserializeObject<Link.OpenApiResponse<Link.EmptyData>>(message);
+					    if (response is not null && response.Error != 0)
 					    {
-						    var response = JsonConvert.DeserializeObject<Link.OpenApiResponse<Link.EmptyData>>(message);
-						    if (response is not null && response.Error != 0)
+						    throw new RequestException(response.Error, response.Message ?? "Unknown error");
+					    }
+				    }
+
+				    var (eventType, content) = AnalyzeMessage(message);
+				    if (eventType == EventType.Retry)
+				    {
+					    retryTime = int.Parse(content);
+					    continue;
+				    }
+				    if (eventType == EventType.Event)
+				    {
+					    eventData = AnalyzeEvent(content);
+					    dataBuffer.Clear();
+					    continue;
+				    }
+				    if (eventType == EventType.Data)
+				    {
+					    dataBuffer.AppendLine(content);
+					    continue;
+				    }
+				    if (eventType == EventType.Id)
+				    {
+					    continue;
+				    }
+
+				    if (eventData is not null)
+				    {
+					    try
+					    {
+						    var json = JObject.Parse(dataBuffer.ToString());
+						    switch (eventData.MessageType)
 						    {
-							    throw new RequestException(response.Error, response.Message ?? "Unknown error");
+							    case MessageType.UpdateDeviceState:
+								    HandleStateUpdate(json);
+								    break;
+							    case MessageType.UpdateDeviceOnline:
+								    HandleOnline(json);
+								    break;
+							    case MessageType.AddDevice:
+								    HandleDeviceAdded(json);
+								    break;
+							    case MessageType.DeleteDevice:
+								    HandleDeviceDeleted(json);
+								    break;
+							    case MessageType.UpdateDeviceInfo:
+								    HandleDeviceInfoUpdate(json);
+								    break;
 						    }
 					    }
-
-					    var (eventType, content) = AnalyzeMessage(message);
-					    if (eventType == EventType.Retry)
+					    finally
 					    {
-						    retryTime = int.Parse(content);
-						    continue;
-					    }
-					    if (eventType == EventType.Event)
-					    {
-						    eventData = AnalyzeEvent(content);
+						    eventData = null;
 						    dataBuffer.Clear();
-						    continue;
-					    }
-					    if (eventType == EventType.Data)
-					    {
-						    dataBuffer.AppendLine(content);
-						    continue;
-					    }
-					    if (eventType == EventType.Id)
-					    {
-						    continue;
-					    }
-
-					    if (eventData is not null)
-					    {
-						    try
-						    {
-							    var json = JObject.Parse(dataBuffer.ToString());
-							    switch (eventData.MessageType)
-							    {
-								    case MessageType.UpdateDeviceState:
-									    HandleStateUpdate(json);
-									    break;
-								    case MessageType.UpdateDeviceOnline:
-									    HandleOnline(json);
-									    break;
-								    case MessageType.AddDevice:
-									    HandleDeviceAdded(json);
-									    break;
-								    case MessageType.DeleteDevice:
-									    HandleDeviceDeleted(json);
-									    break;
-							    }
-						    }
-						    finally
-						    {
-							    eventData = null;
-							    dataBuffer.Clear();
-						    }
 					    }
 				    }
 			    }
@@ -198,6 +199,14 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
     {
 	    var addEvent = json.ToObject<AddEvent>();
 	    deviceCache.UpdateCache(addEvent!.Payload);
+    }
+    
+    private void HandleDeviceInfoUpdate(JObject json)
+    {
+	    var updateInfoEvent = json.ToObject<UpdateInfoEvent>();
+	    var endpoint = updateInfoEvent!.Endpoint;
+	    if (deviceCache.GetDevice(endpoint.SerialNumber) is ISubDeviceControl device)
+			device.UpdateName(updateInfoEvent.Payload.Name);
     }
     
     private void HandleDeviceDeleted(JObject json)
@@ -322,8 +331,23 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 	    [JsonProperty("payload")]
 	    public OnlinePayload Payload { get; set; } = null!;
     }
+    
+    private class UpdateInfoEvent
+    {
+	    [JsonProperty("endpoint")]
+	    public Endpoint Endpoint { get; set; } = null!;
+	    
+	    [JsonProperty("payload")]
+	    public UpdateInfoPayload Payload { get; set; } = null!;
+    }
 
-    public class OnlinePayload
+    private class UpdateInfoPayload
+    {
+	    [JsonProperty("name")]
+	    public string Name { get; set; } = null!;
+    }
+
+    private class OnlinePayload
     {
 	    [JsonProperty("online")]
 	    public bool Online { get; set; }

@@ -7,7 +7,15 @@
         <TargetFrameworks>net8.0;net6.0;netstandard2.0</TargetFrameworks>
         <LangVersion>12.0</LangVersion>
         <GenerateGlobalUsings>false</GenerateGlobalUsings>
-        <PackageId>eWeLink.Cube.Api</PackageId>
+        <PackageId>DotNet-eWeLink.Cube.Api</PackageId>
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>..\eWeLink.Cube.Api.snk</AssemblyOriginatorKeyFile>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Title>eWeLink Cube Api</Title>
+        <Authors />
+        <Description>.Net Library that wraps the eWeLink Cube Api</Description>
+        <Version>0.6.5</Version>
+        <PackageProjectUrl>https://github.com/narchibald/dotnet-ewelink-cube-api</PackageProjectUrl>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,6 +24,12 @@
       <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\eWeLink.Cube.Api.snk">
+        <Link>eWeLink.Cube.Api.snk</Link>
+      </None>
     </ItemGroup>
 
 </Project>

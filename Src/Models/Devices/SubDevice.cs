@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 namespace EWeLink.Cube.Api.Models.Devices
 {
     [JsonConverter(typeof(SubDeviceConverter))]
-    public class SubDevice : ISubDevice
+    public class SubDevice : ISubDevice, ISubDeviceControl
     {
         [JsonProperty("serial_number")]
         public string SerialNumber { get; set; } = string.Empty;
@@ -51,5 +51,10 @@ namespace EWeLink.Cube.Api.Models.Devices
         
         [JsonProperty("subnet")]
         public bool? Subnet { get; set; }
+
+        public void UpdateName(string name)
+        {
+            this.Name = name;
+        }
     }
 }

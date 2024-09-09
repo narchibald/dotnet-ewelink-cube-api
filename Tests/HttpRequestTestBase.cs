@@ -43,6 +43,13 @@ public class HttpRequestTestBase
             Content = new StringContent(json, new MediaTypeHeaderValue("application/json"))
         }, requestExpression, callBack);
     
+    public void ConfigureHttpStreamResponse(Stream stream, Expression<Func<HttpRequestMessage, bool>>? requestExpression = null, Action<HttpRequestMessage, CancellationToken>? callBack = null)
+        => ConfigureHttpResponse(new HttpResponseMessage
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StreamContent(stream)
+        }, requestExpression, callBack);
+    
     public void ConfigureHttpResponse(HttpResponseMessage httpResponseMessage, Expression<Func<HttpRequestMessage, bool>>? requestExpression = null, Action<HttpRequestMessage, CancellationToken>? callBack = null)
     {
         handlerMock

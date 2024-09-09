@@ -35,6 +35,7 @@ public class PlaySoundTests : HttpRequestTestBase
         // Assert
         VerifyHttpRequest();
         Assert.True(result);
+        Assert.NotNull(sentJson);
         var json = JsonConvert.DeserializeObject<dynamic>(sentJson);
         string type = json.type;
         string name = json.sound.name;
@@ -70,6 +71,7 @@ public class PlaySoundTests : HttpRequestTestBase
         // Assert
         VerifyHttpRequest();
         Assert.True(result);
+        Assert.NotNull(sentJson);
         var json = JsonConvert.DeserializeObject<dynamic>(sentJson);
         string type = json.type;
         string name = json.beep.name;

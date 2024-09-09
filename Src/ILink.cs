@@ -2,14 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using EWeLink.Cube.Api.Models.Devices;
+using EWeLink.Cube.Api.Models.States;
 
 namespace EWeLink.Cube.Api;
 
 public interface ILink : IDisposable
 {
+    event Action<ILink, ILinkEvent<SubDeviceState>>? DeviceStateUpdated;
+    
     IPAddress IpAddress { get; }
     
     int Port { get; }
@@ -27,8 +31,6 @@ public interface ILink : IDisposable
     Task<ISubDevice?> GetDevice(string serialNumber);
     
     Task<IReadOnlyList<ISubDevice>> GetDevices();
-    
-    Task<IEventStream> GetEventStream();
 }
 
 internal interface ILinkControl

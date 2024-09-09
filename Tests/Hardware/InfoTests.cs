@@ -20,7 +20,7 @@ public class RestartTests : HttpRequestTestBase
             data = new { },
             message = "success"
         };
-        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Post && message.RequestUri == expectUri && message.Content.Headers.ContentType.MediaType == "application/json");
+        ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Post && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json");
         
         // Act
         var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());

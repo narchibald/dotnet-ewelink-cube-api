@@ -7,8 +7,3 @@ public interface IEventStream
 {
     event Action<ILinkEvent<SubDeviceState>>? StateUpdated;
 }
-
-internal interface IEventStreamControl
-{
-    event Action<ILinkEvent<SubDeviceState>>? StateUpdated;
-}

@@ -45,6 +45,11 @@ namespace EWeLink.Cube.Api.Models.Devices
         public T State { get; }
     }
 
+    internal interface ISubDeviceControl
+    {
+        void UpdateName(string name);
+    }
+
     public class SubDevice<T> : SubDevice, ISubDevice<T>
         where T : SubDeviceState
     {
