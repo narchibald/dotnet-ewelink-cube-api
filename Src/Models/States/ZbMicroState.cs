@@ -13,4 +13,7 @@ public class ZbMicroState : SubDeviceState
     
     [JsonProperty("power")]
     public PowerCapability? Power { get; set; }
+    
+    [JsonProperty("rssi")]
+    public RssiCapability? Rssi { get; set; }
 }
