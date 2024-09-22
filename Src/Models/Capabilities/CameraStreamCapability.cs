@@ -3,7 +3,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class CameraStreamCapability
+[Capability("camera-stream")]
+public class CameraStreamCapability : Capability
 {
     [JsonProperty("configuration")]
     public CameraStreamConfiguration Configuration { get; set; } = null!;

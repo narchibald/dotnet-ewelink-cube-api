@@ -4,6 +4,9 @@ namespace EWeLink.Cube.Api.Models.Devices;
 
 public enum SubDeviceProtocol
 {
+    [EnumMember(Value = null)]
+    None,
+    
     [EnumMember(Value = "zigbee")]
     Zigbee,
     

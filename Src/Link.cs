@@ -1,20 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using EWeLink.Cube.Api;
+using EWeLink.Cube.Api.Models;
+using EWeLink.Cube.Api.Extensions;
+using EWeLink.Cube.Api.Models.Capabilities;
+using EWeLink.Cube.Api.Models.Converters;
 using EWeLink.Cube.Api.Models.Devices;
 using EWeLink.Cube.Api.Models.States;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace EWeLink.Cube.Api;
 
 public class Link : ILink, ILinkControl
 {
-    private const string BasePath = "open-api/v1/rest/";
+    private readonly string BasePathFormat = "open-api/v{0}/rest/";
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly IHttpClientFactory httpClientFactory;
     private readonly IDeviceCache deviceCache;
@@ -22,12 +29,27 @@ public class Link : ILink, ILinkControl
     private readonly ILogger<Link> logger;
     private EventStream? eventStream;
     private int port = 80;
-    private bool portLocked = false; 
+    private bool portLocked = false;
+    private ApiVersion apiVersion = ApiVersion.v2;
+    private bool apiLocked = false;
+    private bool initialized = false;
     private Action<ILink, ILinkEvent<SubDeviceState>>? deviceStateUpdatedEvent;
 
-    public Link(IPAddress ipAddress, string? accessToken, IHttpClientFactory httpClientFactory, IDeviceCache deviceCache, ILoggerFactory loggerFactory)
+    public Link(IPAddress ipAddress, string? accessToken, int? port,  ApiVersion? apiVersion, IHttpClientFactory httpClientFactory, IDeviceCache deviceCache, ILoggerFactory loggerFactory)
     {
         this.IpAddress = ipAddress;
+        if (port is not null)
+        {
+            this.port = port.Value;
+            portLocked = true;
+        }
+
+        if (apiVersion is not null)
+        {
+            this.apiVersion = apiVersion.Value;
+            this.apiLocked = true;
+        }
+
         this.AccessToken = accessToken;
         this.httpClientFactory = httpClientFactory;
         this.deviceCache = deviceCache;
@@ -36,6 +58,7 @@ public class Link : ILink, ILinkControl
         Gateway = new Gateway(this);
         Screen = new Screen(this);
         Hardware = new Hardware(this);
+        Security = new Security(this);
     }
 
     public event Action<ILink, ILinkEvent<SubDeviceState>>? DeviceStateUpdated
@@ -74,8 +97,14 @@ public class Link : ILink, ILinkControl
     public IHardware Hardware { get; }
     
     public IScreen Screen { get; }
+    
+    public ISecurity Security { get; }
 
     public int Port => port;
+    
+    public ApiVersion ApiVersion => apiVersion;
+    
+    private string BasePath => string.Format(BasePathFormat, (int)apiVersion);
     
     public async Task<string?> GetAccessToken(CancellationToken? cancellationToken = default)
     {
@@ -124,6 +153,42 @@ public class Link : ILink, ILinkControl
         return device;
     }
 
+    public async Task<bool> SetSwitchState(string serialNumber, SwitchState state, Channel channel = Channel.One)
+    {
+        bool isPowerStateChange = false;
+        _ = await GetDeviceForUpdate(serialNumber, (d) =>
+        {
+            void CheckUpdateCapability<T>() where T : Capability
+            {
+                if (!d.HasCapability<T>(Permission.Update))
+                    throw new NotSupportedCapabilityException<T>();
+            }
+
+            switch (channel)
+            {
+                case Channel.One:
+                {
+                    if (d.HasCapability<OneToggleCapability>())
+                        CheckUpdateCapability<OneToggleCapability>();
+                    CheckUpdateCapability<PowerCapability>();
+                    isPowerStateChange = true;
+                }
+                    break;
+                case Channel.Two:
+                    CheckUpdateCapability<TwoToggleCapability>();
+                    break;
+                case Channel.Three:
+                    CheckUpdateCapability<ThreeToggleCapability>();
+                    break;
+            }
+        });
+        
+        if(isPowerStateChange)
+            return await SetPowerState(serialNumber, state);
+
+        return await SetToggleState(serialNumber, state, channel);
+    }
+
     public async Task<IReadOnlyList<ISubDevice>> GetDevices()
     {
         EnsureAccessToken();
@@ -131,6 +196,72 @@ public class Link : ILink, ILinkControl
         var deviceList = (await MakeRequest<Devices>("devices")).List;
         deviceCache.UpdateCache(deviceList);
         return deviceList;
+    }
+
+    public async Task<bool> SetPowerState(string serialNumber, SwitchState state)
+    {
+        _ = GetDeviceForUpdate<PowerCapability>(serialNumber);
+
+        var update = new UpdateDeviceState(new PowerCapability { State = state });
+        try
+        {
+            await MakeRequest<EmptyData>($"devices/{serialNumber}", HttpMethod.Put, update);
+        }
+        catch (RequestException ex) when(ex.Error is 110006)
+        {
+            return false;
+        }
+        
+        return true;
+    }
+
+    public async Task<bool> SetToggleState(string serialNumber, SwitchState state, Channel channel)
+    {
+        _ = await (channel switch
+        {
+            Channel.One => GetDeviceForUpdate<OneToggleCapability>(serialNumber),
+            Channel.Two => GetDeviceForUpdate<TwoToggleCapability>(serialNumber),
+            Channel.Three => GetDeviceForUpdate<ThreeToggleCapability>(serialNumber),
+            _ => throw new ArgumentOutOfRangeException(nameof(channel), channel, null)
+        });
+        
+        var toggleState = new ToggleState { State = state };
+        var capability = channel switch
+        {
+            Channel.One => new OneToggleCapability { One = toggleState },
+            Channel.Two => new TwoToggleCapability { Two = toggleState },
+            Channel.Three  => new ThreeToggleCapability { Three = toggleState },
+            _ => throw new ArgumentOutOfRangeException(nameof(channel), channel, null)
+        };
+        
+        var update = new UpdateDeviceState(capability);
+        try
+        {
+            await MakeRequest<EmptyData>($"devices/{serialNumber}", HttpMethod.Put, update);
+        }
+        catch (RequestException ex) when(ex.Error is 110006)
+        {
+            return false;
+        }
+        
+        return true;
+    }
+
+    public async Task<bool> SetPercentage(string serialNumber, int percent)
+    {
+        _ = GetDeviceForUpdate<PercentageCapability>(serialNumber);
+
+        var update = new UpdateDeviceState(new PercentageCapability { Value = percent });
+        try
+        {
+            await MakeRequest<EmptyData>($"devices/{serialNumber}", HttpMethod.Put, update);
+        }
+        catch (RequestException ex) when(ex.Error is 110006)
+        {
+            return false;
+        }
+        
+        return true;
     }
 
     public string EnsureAccessToken()
@@ -149,6 +280,36 @@ public class Link : ILink, ILinkControl
     async Task<T> ILinkControl.MakeRequest<T>(string path, HttpMethod? method, object? content)
         => await MakeRequest<T>(path, method, content);
 
+    private async Task EnsureInitialised()
+    {
+        if (initialized)
+            return;
+        await GetDevices();
+        initialized = true;
+    }
+
+    private async Task<ISubDevice> GetDeviceForUpdate<T>(string serialNumber)
+        where T : Capability
+    {
+        return await GetDeviceForUpdate(serialNumber, (device) =>
+        {
+            if (!device.HasCapability<T>(Permission.Update))
+                throw new NotSupportedCapabilityException<T>();
+        });
+    }
+    
+    private async Task<ISubDevice> GetDeviceForUpdate(string serialNumber, Action<ISubDevice> checkCapability)
+    {
+        await EnsureInitialised();
+        
+        if (!deviceCache.TryGetDevice(serialNumber, out var device))
+            throw new UnknownDeviceException(serialNumber);
+
+        checkCapability(device!);
+        
+        return device!;
+    }
+    
     private async Task StartEventStream()
     {
         EnsureAccessToken();
@@ -190,8 +351,11 @@ public class Link : ILink, ILinkControl
         }
     }
 
-    private async Task<T> MakeRequest<T>(string path, HttpMethod? method = null, object? content = null)
+    private async Task<T> MakeRequest<T>(string path, HttpMethod? method = null, object? content = null, bool negotiateApiVersion = true)
     {
+        if (negotiateApiVersion)
+            await NegotiateApiVersion();
+        
         async Task<T> TryMakeRequest(int withPort)
         {
             UriBuilder uri = new($"http://{IpAddress}")
@@ -203,7 +367,7 @@ public class Link : ILink, ILinkControl
             var httpClient = this.httpClientFactory.CreateClient();
             var request = new HttpRequestMessage(method ?? HttpMethod.Get, uri.ToString());
             
-            var contentAsJson = content is null ? string.Empty : JsonConvert.SerializeObject(content, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            var contentAsJson = content is null ? string.Empty : JsonConvert.SerializeObject(content, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Converters = [ new PermissionConverter(ApiVersion), new StringEnumConverter() ] });
             request.Content = new StringContent(contentAsJson)
             {
                 Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
@@ -215,7 +379,7 @@ public class Link : ILink, ILinkControl
             response.EnsureSuccessStatusCode();
             portLocked = true;
             var responseContent = await response.Content.ReadAsStringAsync();
-            var responseObject = JsonConvert.DeserializeObject<OpenApiResponse<T>>(responseContent);
+            var responseObject = JsonConvert.DeserializeObject<OpenApiResponse<T>>(responseContent, new PermissionConverter(ApiVersion));
             return GetResponseData<T>(responseObject!);
         }
 
@@ -232,12 +396,59 @@ public class Link : ILink, ILinkControl
         return await TryMakeRequest(port);
     }
 
+    private async Task NegotiateApiVersion()
+    {
+        if (apiLocked)
+            return;
+
+        try
+        {
+            await this.MakeRequest<string>("bridge/access_token", negotiateApiVersion: false);
+            apiLocked = true;
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("Bad Request") && !apiLocked)
+        {
+        }
+        catch (RequestException ex) when (ex.Error == (int)HttpStatusCode.BadRequest && !apiLocked)
+        {
+        }
+        
+        logger.LogDebug("Failed to make request to Api Version {ApiVersion}.", apiVersion);
+        this.apiVersion = ApiVersion.v1;
+        if (!portLocked)
+            port = 80;
+    }
+
     private T GetResponseData<T>(OpenApiResponse<T> response)
     {
         int error = response.Error;
         if (error != 0)
         {
-            string? message = response.Message;
+            string? message = error switch
+            {
+                110000 => "The sub-device/group corresponding to the id does not exist",
+                110001 => "The gateway is in the state of discovering zigbee devices",
+                110002 => "Devices in a group do not have a common capability",
+                110003 => "Incorrect number of devices",
+                110004 => "Incorrect number of groups",
+                110005 => "Device Offline",
+                110006 => "Failed to update device status",
+                110007 => "Failed to update group status",
+                110008 => "The maximum number of groups has been reached. Create up to 50 groups",
+                110009 => "The IP address of the camera device is incorrect",
+                110010 => "Camera Device Access Authorization Error",
+                110011 => "Camera device stream address error",
+                110012 => "Camera device video encoding is not supported",
+                110013 => "Device already exists",
+                110014 => "Camera does not support offline operation",
+                110015 => "The account password is inconsistent with the account password in the RTSP stream address",
+                110016 => "The gateway is in the state of discovering onvif cameras",
+                110017 => "Exceeded the maximum number of cameras added",
+                110018 => "The path of the ESP camera is wrong",
+                110019 => "Failed to access the service address of the third-party device",
+                _ => response.Message
+            };
+            
             throw new RequestException(error, message ?? "Unknown error");
         }
 
@@ -272,5 +483,31 @@ public class Link : ILink, ILinkControl
     {
         [JsonProperty("device_list")]
         public List<SubDevice> List { get; set; } = new();
+    }
+
+    public class UpdateDeviceState
+    {
+        public UpdateDeviceState(params Capability[] capabilities)
+            : this(capabilities.ToList())
+        {
+        }
+
+        public UpdateDeviceState(IEnumerable<Capability> capabilities)
+        {
+            State = capabilities.ToDictionary(x => x.GetCapabilityName());
+        }
+        
+        [JsonProperty("name")]
+
+        public string? Name { get; } = null;
+        
+        [JsonProperty("tags")]
+        public Dictionary<string, object>? Tags { get; } = null;
+        
+        [JsonProperty("state")]
+        public Dictionary<string, Capability>? State { get; } = null;
+        
+        [JsonProperty("configuration")]
+        public object? Configuration { get; } = null;
     }
 }

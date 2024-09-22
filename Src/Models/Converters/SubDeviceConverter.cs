@@ -48,7 +48,7 @@ namespace EWeLink.Cube.Api.Models.Converters
             var jsonObject = JObject.Load(reader);
             var deviceModel = jsonObject.Value<string>("model");
             var deviceCategory = string.IsNullOrWhiteSpace(deviceModel) ? jsonObject.Value<string>("display_category") : null;
-            var deviceProtocol = jsonObject.Value<string>("protocol");
+            var deviceProtocol = string.IsNullOrWhiteSpace(deviceModel) ? jsonObject.Value<string>("protocol") : null;
             var key = (deviceModel?.ToLowerInvariant() ?? string.Empty, deviceProtocol, deviceCategory);
             if (deviceModel is null || !SubDeviceTypes.TryGetValue(key, out var deviceType))
             {
@@ -58,7 +58,7 @@ namespace EWeLink.Cube.Api.Models.Converters
             try
             {
                 Disabled = true;
-                return jsonObject.ToObject(deviceType);
+                return jsonObject.ToObject(deviceType, serializer);
             }
             finally
             {

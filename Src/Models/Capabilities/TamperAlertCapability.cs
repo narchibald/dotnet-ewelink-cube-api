@@ -4,7 +4,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class TamperAlertCapability
+[Capability("tamper-alert")]
+public class TamperAlertCapability : Capability
 {
     [JsonProperty("tamper")]
     public TamperState Value { get; set; }

@@ -146,7 +146,7 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 				    }
 				    if (eventType == EventType.Data)
 				    {
-					    dataBuffer.AppendLine(content);
+					    dataBuffer.Append(content);
 					    continue;
 				    }
 				    if (eventType == EventType.Id)
@@ -158,25 +158,32 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 				    {
 					    try
 					    {
-						    var json = JObject.Parse(dataBuffer.ToString());
-						    switch (eventData.MessageType)
+						    if (dataBuffer.Length > 1)
 						    {
-							    case MessageType.UpdateDeviceState:
-								    HandleStateUpdate(json);
-								    break;
-							    case MessageType.UpdateDeviceOnline:
-								    HandleOnline(json);
-								    break;
-							    case MessageType.AddDevice:
-								    HandleDeviceAdded(json);
-								    break;
-							    case MessageType.DeleteDevice:
-								    HandleDeviceDeleted(json);
-								    break;
-							    case MessageType.UpdateDeviceInfo:
-								    HandleDeviceInfoUpdate(json);
-								    break;
+							    var json = JObject.Parse(dataBuffer.ToString());
+							    switch (eventData.MessageType)
+							    {
+								    case MessageType.UpdateDeviceState:
+									    HandleStateUpdate(json);
+									    break;
+								    case MessageType.UpdateDeviceOnline:
+									    HandleOnline(json);
+									    break;
+								    case MessageType.AddDevice:
+									    HandleDeviceAdded(json);
+									    break;
+								    case MessageType.DeleteDevice:
+									    HandleDeviceDeleted(json);
+									    break;
+								    case MessageType.UpdateDeviceInfo:
+									    HandleDeviceInfoUpdate(json);
+									    break;
+							    }
 						    }
+					    }
+					    catch (JsonReaderException ex)
+					    {
+						    logger.LogDebug(ex, "Data Buffer found to not contain json");
 					    }
 					    finally
 					    {
@@ -267,9 +274,11 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 	    return (messageType, content.ToString());
     }
     
-    private EventData AnalyzeEvent(string data)
+    private EventData? AnalyzeEvent(string data)
     {
 	    var parts = data.Split('#');
+	    if (parts.Length != 3 || parts[0] is not "device" )
+		    return null;
 
 	    var messageType = parts.Last().ParseFromEnumMemberValue(MessageType.Unknown);
 		

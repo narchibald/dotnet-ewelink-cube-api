@@ -1,11 +1,11 @@
 using EWeLink.Cube.Api.Models.States;
 using Newtonsoft.Json;
 
-namespace EWeLink.Cube.Api.Models.Capabilities
+namespace EWeLink.Cube.Api.Models.Capabilities;
+
+[Capability("rssi")]
+public class RssiCapability : Capability
 {
-    public class RssiCapability
-    {
-        [JsonProperty("rssi")]
-        public int State { get; set; }
-    }
+    [JsonProperty("rssi")]
+    public int State { get; set; }
 }

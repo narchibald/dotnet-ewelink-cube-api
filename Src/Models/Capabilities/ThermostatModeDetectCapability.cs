@@ -2,7 +2,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class ThermostatModeDetectCapability
+[Capability("thermostat-mode-detect")]
+public class ThermostatModeDetectCapability : Capability
 {
     [JsonProperty("humidity")]
     public HumidityMode? Humidity { get; set; }

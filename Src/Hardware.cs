@@ -1,11 +1,8 @@
-using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
-using EWeLink.Cube.Api.Models;
-using Newtonsoft.Json;
-
 namespace EWeLink.Cube.Api;
+
+using System.Net.Http;
+using System.Threading.Tasks;
+using Models;
 
 internal class Hardware(ILinkControl control) : IHardware
 {
@@ -17,7 +14,7 @@ internal class Hardware(ILinkControl control) : IHardware
         {
             await control.MakeRequest<Link.EmptyData>("hardware/reboot", HttpMethod.Post);
         }
-        catch (RequestException ex)
+        catch (RequestException)
         {
             return false;
         }
@@ -40,7 +37,7 @@ internal class Hardware(ILinkControl control) : IHardware
         {
             await control.MakeRequest<Link.EmptyData>("hardware/speaker", HttpMethod.Post, sound);
         }
-        catch (RequestException ex)
+        catch (RequestException)
         {
             return false;
         }

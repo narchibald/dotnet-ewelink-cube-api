@@ -4,7 +4,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class TransmitPowerCapability
+[Capability("transmit-power")]
+public class TransmitPowerCapability : Capability
 {
     [JsonProperty("transmitPower")]
     public int Power { get; set; }

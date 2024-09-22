@@ -21,7 +21,10 @@ namespace EWeLink.Cube.Api.Models.Converters
             }
             else if (value is decimal decimalValue)
             {
-                writer.WriteValue(decimalValue.ToString($"F{decimalPlaces}").Replace(".", string.Empty));
+                if (decimalValue == 0)
+                    writer.WriteValue((int) decimalValue);
+                else 
+                    writer.WriteValue(int.Parse(decimalValue.ToString($"F{decimalPlaces}").Replace(".", string.Empty)));
             }
             else
             {
@@ -61,7 +64,7 @@ namespace EWeLink.Cube.Api.Models.Converters
         /// <inheritdoc/>
         public override bool CanConvert(Type objectType)
         {
-            return true;
+            return objectType == typeof(decimal) || objectType == typeof(decimal?);
         }
     }
 }

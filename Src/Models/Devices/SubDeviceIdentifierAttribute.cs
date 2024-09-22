@@ -7,7 +7,7 @@ namespace EWeLink.Cube.Api.Models.Devices
     {
         public string Model { get; } = model;
 
-        public string? Protocol { get; set; } = "zigbee";
+        public string? Protocol { get; set; }
         
         public string? DisplayCategory { get; set; }
     }

@@ -2,7 +2,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class IlluminationLevelCapability
+[Capability("illumination-level")]
+public class IlluminationLevelCapability : Capability
 {
     [JsonProperty("level")]
     public IlluminationLevel Level { get; set; }

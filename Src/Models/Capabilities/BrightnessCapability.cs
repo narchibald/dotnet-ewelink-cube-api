@@ -3,7 +3,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class BrightnessCapability
+[Capability("brightness")]
+public class BrightnessCapability : Capability
 {
     [JsonProperty("brightness")]
     [JsonConverter(typeof(IntToDecimalConverter), 0)]

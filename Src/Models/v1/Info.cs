@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace EWeLink.Cube.Api.Models;
+namespace EWeLink.Cube.Api.Models.v1;
 
 public class Info
 {
@@ -16,3 +16,4 @@ public class Info
     [JsonProperty("fw_version")]
     public string FirmwareVersion { get; set; } = string.Empty;
 }
+

@@ -2,7 +2,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class PressCapability
+[Capability("press")]
+public class PressCapability : Capability
 {
     [JsonProperty("press")]
     public PressState Value { get; set; }

@@ -1,19 +1,35 @@
+using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Devices
 {
-    public enum CapabilityPermission
+    [Flags]
+    public enum Permission : short
     {
+        None = 0,
+        
         [EnumMember(Value = "read")]
-        Read = 1,
+        Query = 1 << 0,
+        
+        Configure = 1 << 1,
 
         [EnumMember(Value = "write")]
-        Write = 2,
+        Update = 1 << 3,
+        
+        Updated = 1 << 2,
 
         [EnumMember(Value = "readWrite")]
-        ReadWrite = Read | Write,
+        UpdateQuery = Update | Query,
+        
+        UpdateUpdatedConfigure = Update | Updated | Configure,
+        
+        UpdateUpdated = Update | Updated,
+        
+        UpdatedConfigure = Updated | Configure,
+        
+        UpdateUpdatedQuery = Query | Updated | Configure,
     }
 
     public class SubDeviceCapability
@@ -22,7 +38,7 @@ namespace EWeLink.Cube.Api.Models.Devices
         public string Capability { get; set; } = string.Empty;
 
         [JsonProperty("permission")]
-        public CapabilityPermission Permission { get; set; }
+        public Permission Permission { get; set; }
 
         [JsonProperty("name")]
         public string? Name { get; set; }

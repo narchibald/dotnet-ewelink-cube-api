@@ -4,7 +4,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class StartupCapability
+[Capability("startup")]
+public class StartupCapability : Capability
 {
     [JsonProperty("startup")]
     public StartupState State { get; set; }

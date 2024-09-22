@@ -4,7 +4,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class PowerCapability
+[Capability("power")]
+public class PowerCapability : Capability
 {
     [JsonProperty("powerState")]
     public SwitchState State { get; set; }

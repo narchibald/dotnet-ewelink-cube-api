@@ -4,7 +4,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class HumidityCapability
+[Capability("humidity")]
+public class HumidityCapability : Capability
 {
     [JsonProperty("humidity")]
     [JsonConverter(typeof(IntToDecimalConverter), 0)]

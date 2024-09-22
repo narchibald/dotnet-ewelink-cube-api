@@ -3,7 +3,8 @@ using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
-public class BatteryCapability
+[Capability("battery")]
+public class BatteryCapability : Capability
 {
     [JsonProperty("battery")]
     [JsonConverter(typeof(IntToDecimalConverter), 0)]

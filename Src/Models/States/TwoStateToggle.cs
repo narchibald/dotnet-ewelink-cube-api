@@ -1,11 +1,10 @@
-using System.Collections.Generic;
+using EWeLink.Cube.Api.Models.Capabilities;
 using Newtonsoft.Json;
 
-namespace EWeLink.Cube.Api.Models.States
+namespace EWeLink.Cube.Api.Models.States;
+
+public class TwoStateToggle : SwitchStateToggle
 {
-    public class TwoStateToggle : SubDeviceState
-    {
-        [JsonProperty("toggle")]
-        public Dictionary<string, ToggleState> Toggle { get; set; } = new();
-    }
+    [JsonProperty("toggle")]
+    public TwoToggleCapability? Toggle { get; set; }
 }
