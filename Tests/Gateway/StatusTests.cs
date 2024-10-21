@@ -29,7 +29,7 @@ public class StatusTests : HttpRequestTestBase
         ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Get && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json");
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var status = await link.Gateway.GetStatus();
         
@@ -40,4 +40,7 @@ public class StatusTests : HttpRequestTestBase
         Assert.Equal(30, status.CpuUsed);
         Assert.Equal(DateTimeOffset.Parse(expectedPowerUpTime), status.PowerUpTime);
     }
+    
+    private Link CreateLink()
+        => new Link(ipAddress, accessToken, null, ApiVersion.v1, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 }

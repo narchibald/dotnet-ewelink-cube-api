@@ -31,6 +31,10 @@ public interface ILink : IDisposable
     Task<string?> GetAccessToken(CancellationToken? cancellationToken = default);
 
     Task<ISubDevice?> GetDevice(string serialNumber);
+
+    Task<string> AddDevice(CameraDevice camera);
+    
+    Task<bool> DeleteDevice(string serialNumber);
     
     Task<bool> SetSwitchState(string serialNumber, SwitchState state, Channel channel = Channel.One);
     

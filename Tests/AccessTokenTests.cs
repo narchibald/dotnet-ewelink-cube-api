@@ -23,7 +23,7 @@ public class AccessTokenTests : HttpRequestTestBase
         ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Get && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json");
         
         // Act
-        var link = new Link(ipAddress, null, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var accessToken = await link.GetAccessToken();
 
@@ -58,7 +58,7 @@ public class AccessTokenTests : HttpRequestTestBase
         loggerFactory.Setup(factory => factory.CreateLogger(It.IsAny<string>())).Returns(Mock.Of<ILogger>());
         
         // Act
-        var link = new Link(ipAddress, null, HttpClientFactory.Object, new DeviceCache(), loggerFactory.Object);
+        var link = CreateLink();
 
         var accessToken = await link.GetAccessToken();
 
@@ -68,4 +68,7 @@ public class AccessTokenTests : HttpRequestTestBase
         Assert.Equal(expectedToken, accessToken);
         Assert.Equal(expectedToken, link.AccessToken);
     }
+    
+    private Link CreateLink()
+        => new Link(ipAddress, null, null, ApiVersion.v1, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>(x => x.CreateLogger(It.IsAny<string>()) == Mock.Of<ILogger>()));
 }

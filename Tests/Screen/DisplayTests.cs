@@ -28,7 +28,7 @@ public class DisplayTests : HttpRequestTestBase
             (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var result = await link.Screen.SetDisplay(false);
         
@@ -60,7 +60,7 @@ public class DisplayTests : HttpRequestTestBase
             (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var result = await link.Screen.SetDisplay(true, 65);
         
@@ -96,11 +96,14 @@ public class DisplayTests : HttpRequestTestBase
             (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => link.Screen.SetDisplay(true, setDuration));
         
         // Assert
         Assert.Null(sentJson);
     }
+    
+    private Link CreateLink()
+        => new Link(ipAddress, accessToken, null, ApiVersion.v1, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 }

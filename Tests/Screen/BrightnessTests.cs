@@ -28,7 +28,7 @@ public class BrightnessTests : HttpRequestTestBase
             (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var result = await link.Screen.SetBrightness(ScreenBrightnessMode.Auto);
         
@@ -60,7 +60,7 @@ public class BrightnessTests : HttpRequestTestBase
             (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var result = await link.Screen.SetBrightness(ScreenBrightnessMode.Manual, 41);
         
@@ -96,11 +96,14 @@ public class BrightnessTests : HttpRequestTestBase
             (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => link.Screen.SetBrightness(ScreenBrightnessMode.Manual, valueToSet));
         
         // Assert
         Assert.Null(sentJson);
     }
+    
+    private Link CreateLink()
+        => new Link(ipAddress, accessToken, null, ApiVersion.v1, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 }

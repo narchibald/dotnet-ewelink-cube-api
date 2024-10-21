@@ -24,7 +24,7 @@ public class SetConfigTests : HttpRequestTestBase
         ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Put && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json");
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var result = await link.Gateway.SetConfig(new GatewayConfig(20));
         
@@ -32,4 +32,7 @@ public class SetConfigTests : HttpRequestTestBase
         VerifyHttpRequest();
         Assert.True(result);
     }
+    
+    private Link CreateLink()
+        => new Link(ipAddress, accessToken, null, ApiVersion.v1, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 }

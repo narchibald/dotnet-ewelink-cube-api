@@ -34,6 +34,7 @@ namespace EWeLink.Cube.Api.Models.Converters
             if (value is null)
             {
                 writer.WriteNull();
+                return;
             }
             else if (value is Permission permission)
             {
@@ -48,6 +49,7 @@ namespace EWeLink.Cube.Api.Models.Converters
                 }
 
                 writer.WriteValue(output);
+                return;
             }
 
             throw new NotSupportedException();

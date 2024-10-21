@@ -28,7 +28,7 @@ public class PlaySoundTests : HttpRequestTestBase
             (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var result = await link.Hardware.PlaySound(new PlaySound(SoundResource.Doorbell2, 64, 3));
         
@@ -64,7 +64,7 @@ public class PlaySoundTests : HttpRequestTestBase
             (message, token) => sentJson = message.Content!.ReadAsStringAsync().Result);
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var result = await link.Hardware.PlaySound(new PlayBeep(BeepResource.SystemArmed, 64));
         
@@ -80,4 +80,7 @@ public class PlaySoundTests : HttpRequestTestBase
         Assert.Equal("systemArmed", name);
         Assert.Equal(64, volume);
     }
+    
+    private Link CreateLink()
+        => new Link(ipAddress, accessToken, null, ApiVersion.v1, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 }

@@ -29,7 +29,7 @@ public class InfoTests : HttpRequestTestBase
         ConfigureHttpJsonResponse(jsonData, message => message.Method == HttpMethod.Get && message.RequestUri == expectUri && message.Content!.Headers.ContentType!.MediaType == "application/json");
         
         // Act
-        var link = new Link(ipAddress, accessToken, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        var link = CreateLink();
 
         var info = await link.Gateway.GetInfo();
         
@@ -41,4 +41,7 @@ public class InfoTests : HttpRequestTestBase
         Assert.Equal("NSPanelPro.local", info.Domain);
         Assert.Equal("1.0.0", info.FirmwareVersion);
     }
+    
+    private Link CreateLink()
+        => new Link(ipAddress, accessToken, null, ApiVersion.v1, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 }

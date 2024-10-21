@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using EWeLink.Cube.Api;
 using EWeLink.Cube.Api.Models;
 using EWeLink.Cube.Api.Extensions;
 using EWeLink.Cube.Api.Models.Capabilities;
@@ -16,6 +15,7 @@ using EWeLink.Cube.Api.Models.States;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 
 namespace EWeLink.Cube.Api;
 
@@ -151,6 +151,31 @@ public class Link : ILink, ILinkControl
         }
         
         return device;
+    }
+
+    public async Task<string> AddDevice(CameraDevice camera)
+    {
+        EnsureAccessToken();
+
+        var response = await MakeRequest<DeviceAdd>("devices", HttpMethod.Post, camera, contractResolver: new DeviceContractResolver(), extraConverters: [ new ProtocolConverter() ]);
+        return response.SerialNumber;
+    }
+
+    public async Task<bool> DeleteDevice(string serialNumber)
+    {
+        EnsureAccessToken();
+
+        try
+        {
+            await MakeRequest<EmptyData>($"devices/{serialNumber}", HttpMethod.Delete);
+            deviceCache.DeleteDevice(serialNumber);
+        }
+        catch (RequestException ex) when(ex.Error is 110006)
+        {
+            return false;
+        }
+        
+        return true;
     }
 
     public async Task<bool> SetSwitchState(string serialNumber, SwitchState state, Channel channel = Channel.One)
@@ -351,8 +376,10 @@ public class Link : ILink, ILinkControl
         }
     }
 
-    private async Task<T> MakeRequest<T>(string path, HttpMethod? method = null, object? content = null, bool negotiateApiVersion = true)
+    private async Task<T> MakeRequest<T>(string path, HttpMethod? method = null, object? content = null, bool negotiateApiVersion = true, IContractResolver? contractResolver = null, IList<JsonConverter>? extraConverters = null)
     {
+        extraConverters ??= [];
+        
         if (negotiateApiVersion)
             await NegotiateApiVersion();
         
@@ -367,7 +394,7 @@ public class Link : ILink, ILinkControl
             var httpClient = this.httpClientFactory.CreateClient();
             var request = new HttpRequestMessage(method ?? HttpMethod.Get, uri.ToString());
             
-            var contentAsJson = content is null ? string.Empty : JsonConvert.SerializeObject(content, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Converters = [ new PermissionConverter(ApiVersion), new StringEnumConverter() ] });
+            var contentAsJson = content is null ? string.Empty : JsonConvert.SerializeObject(content, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Converters = [ ..extraConverters,  new PermissionConverter(ApiVersion), new StringEnumConverter() ], ContractResolver = contractResolver });
             request.Content = new StringContent(contentAsJson)
             {
                 Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
@@ -483,6 +510,12 @@ public class Link : ILink, ILinkControl
     {
         [JsonProperty("device_list")]
         public List<SubDevice> List { get; set; } = new();
+    }
+    
+    public class DeviceAdd
+    {
+        [JsonProperty("serial_number")]
+        public string SerialNumber { get; set; } = string.Empty;
     }
 
     public class UpdateDeviceState
