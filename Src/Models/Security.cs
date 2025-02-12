@@ -21,7 +21,7 @@ internal class Security(ILinkControl control) : ISecurity
 
         try
         {
-            await control.MakeRequest<Link.EmptyData>("security/enable", HttpMethod.Put);
+            await control.MakeRequest<Link.EmptyData>("security/enable", null, HttpMethod.Put);
         }
         catch (RequestException)
         {
@@ -36,7 +36,7 @@ internal class Security(ILinkControl control) : ISecurity
 
         try
         {
-            await control.MakeRequest<Link.EmptyData>("security/disable", HttpMethod.Put);
+            await control.MakeRequest<Link.EmptyData>("security/disable", null, HttpMethod.Put);
         }
         catch (RequestException)
         {
@@ -51,7 +51,7 @@ internal class Security(ILinkControl control) : ISecurity
 
         try
         {
-            await control.MakeRequest<Link.EmptyData>($"security/{sid}/enable", HttpMethod.Put);
+            await control.MakeRequest<Link.EmptyData>($"security/{sid}/enable", null, HttpMethod.Put);
         }
         catch (RequestException)
         {
@@ -66,7 +66,7 @@ internal class Security(ILinkControl control) : ISecurity
 
         try
         {
-            await control.MakeRequest<Link.EmptyData>($"security/{sid}/disable", HttpMethod.Put);
+            await control.MakeRequest<Link.EmptyData>($"security/{sid}/disable", null, HttpMethod.Put);
         }
         catch (RequestException)
         {

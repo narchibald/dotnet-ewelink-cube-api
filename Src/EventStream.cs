@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -27,6 +28,7 @@ public interface ILinkEvent<out T>
 
 internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFactory, IDeviceCache deviceCache, ILogger<EventStream> logger) : IEventStream
 {
+	private static readonly Dictionary<Type, Type> UpdateStateTypeLookup = new Dictionary<Type, Type>();
 	private CancellationTokenSource? cancellationTokenSource;
 	private Task? monitorTask;
 
@@ -240,7 +242,16 @@ internal class EventStream(ILinkControl control, IHttpClientFactory httpClientFa
 	    if (deviceCache.GetDevice(serial) is ISubDevice<SubDeviceState> device)
 	    {
 		    var stateType = device.State.GetType();
-		    var typedUpdate = typeof(StateUpdateEvent<>).MakeGenericType(stateType);
+		    Type? typedUpdate;
+		    lock (UpdateStateTypeLookup)
+		    {
+			    if (!UpdateStateTypeLookup.TryGetValue(stateType, out typedUpdate))
+			    {
+				    typedUpdate = typeof(StateUpdateEvent<>).MakeGenericType(stateType);
+				    UpdateStateTypeLookup.Add(stateType, typedUpdate);
+			    }
+		    }
+
 		    ILinkEvent<SubDeviceState> linkEvent = (ILinkEvent<SubDeviceState>)json.ToObject(typedUpdate)!;
 		    device.State.Update(linkEvent.State);
 		    StateUpdated?.Invoke(linkEvent);

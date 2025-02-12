@@ -30,7 +30,7 @@ internal class Gateway(ILinkControl control) : IGateway
 
         try
         {
-            await control.MakeRequest<Link.EmptyData>("bridge/config", HttpMethod.Put, config);
+            await control.MakeRequest<Link.EmptyData>("bridge/config", null, HttpMethod.Put, config);
         }
         catch (RequestException)
         {

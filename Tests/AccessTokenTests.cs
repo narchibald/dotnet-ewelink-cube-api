@@ -70,5 +70,5 @@ public class AccessTokenTests : HttpRequestTestBase
     }
     
     private Link CreateLink()
-        => new Link(ipAddress, null, null, ApiVersion.v1, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>(x => x.CreateLogger(It.IsAny<string>()) == Mock.Of<ILogger>()));
+        => new Link(ipAddress, null, null, ApiVersion.v1, null, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>(x => x.CreateLogger(It.IsAny<string>()) == Mock.Of<ILogger>()));
 }

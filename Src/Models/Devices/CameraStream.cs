@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using EWeLink.Cube.Api.Models.Capabilities;
+using EWeLink.Cube.Api.Models.Capabilities.Settings;
 using EWeLink.Cube.Api.Models.States;
 
 namespace EWeLink.Cube.Api.Models.Devices;
@@ -9,7 +11,8 @@ public class CameraDevice : SubDevice<CameraStreamState>
 {
     public CameraDevice() {}
 
-    public CameraDevice(string name, SubDeviceProtocol protocol, string streamUrl, string firmwareVersion = "", string model = "", string manufacturer = "")
+    public CameraDevice(string name, SubDeviceProtocol protocol, string streamUrl, string firmwareVersion = "", string model = "",
+        string manufacturer = "")
     {
         if (protocol is not SubDeviceProtocol.Rtsp and not SubDeviceProtocol.Esp32Cam)
             throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Protocol must be either Rtsp or Esp32Cam.");
@@ -24,8 +27,16 @@ public class CameraDevice : SubDevice<CameraStreamState>
             new SubDeviceCapability
             {
                 Capability = "camera-stream",
-                Permission = Permission.Query,
-                Configuration = new() { { "stream_url", streamUrl } }
+                Permission = Permission.UpdatedConfigure,
+                Configuration = new() { { "stream_url", streamUrl } },
+                Settings = new()
+                {
+                    new StreamSetting
+                    {
+                        Permission = Permission.QueryConfigure,
+                        Value = new() { StreamUrl = streamUrl }
+                    },
+                }
             }
         ];
     }

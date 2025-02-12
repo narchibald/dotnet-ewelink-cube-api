@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using EWeLink.Cube.Api.Models.Capabilities.Settings;
+using EWeLink.Cube.Api.Models.Converters;
 using Newtonsoft.Json;
 
 namespace EWeLink.Cube.Api.Models.Devices
@@ -22,6 +24,8 @@ namespace EWeLink.Cube.Api.Models.Devices
 
         [EnumMember(Value = "readWrite")]
         UpdateQuery = Update | Query,
+        
+        QueryConfigure = Query | Configure,
         
         UpdateUpdatedConfigure = Update | Updated | Configure,
         
@@ -45,5 +49,16 @@ namespace EWeLink.Cube.Api.Models.Devices
         
         [JsonProperty("configuration")]
         public Dictionary<string, object>? Configuration { get; set; }
+        
+        [JsonProperty("settings")]
+        [JsonConverter(typeof(CapabilitySettingConverter))]
+        public List<CapabilitySetting>? Settings { get; set; }
+
+        internal virtual ISet<string> AddPropertyList(ApiVersion apiVersion) =>
+            new HashSet<string>
+            {
+                nameof(Capability), nameof(Permission),
+                apiVersion == ApiVersion.v1 ? nameof(Configuration) : nameof(Settings)
+            };
     }
 }

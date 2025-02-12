@@ -43,5 +43,5 @@ public class InfoTests : HttpRequestTestBase
     }
     
     private Link CreateLink()
-        => new Link(ipAddress, accessToken, null, ApiVersion.v1, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
+        => new Link(ipAddress, accessToken, null, ApiVersion.v1, null, HttpClientFactory.Object, new DeviceCache(), Mock.Of<ILoggerFactory>());
 }

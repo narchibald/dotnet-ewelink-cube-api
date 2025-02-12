@@ -13,4 +13,7 @@ public class PresenceSensor : SubDeviceState
     
     [JsonProperty("illumination-level")]
     public IlluminationLevelCapability? IlluminationLevel { get; set; }
+    
+    [JsonProperty("motion")]
+    public MotionCapability? Motion { get; set; }
 }

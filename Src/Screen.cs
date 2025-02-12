@@ -16,7 +16,7 @@ internal class Screen(ILinkControl control) : IScreen
         
         try
         {
-            await control.MakeRequest<Link.EmptyData>("screen/brightness", HttpMethod.Put, new ScreenBrightness(mode, value));
+            await control.MakeRequest<Link.EmptyData>("screen/brightness",  null, HttpMethod.Put, new ScreenBrightness(mode, value));
         }
         catch (RequestException)
         {
@@ -32,7 +32,7 @@ internal class Screen(ILinkControl control) : IScreen
 
         try
         {
-            await control.MakeRequest<Link.EmptyData>("screen/display", HttpMethod.Put, new ScreenDisplay(autoEnabled, duration));
+            await control.MakeRequest<Link.EmptyData>("screen/display", null, HttpMethod.Put, new ScreenDisplay(autoEnabled, duration));
         }
         catch (RequestException)
         {

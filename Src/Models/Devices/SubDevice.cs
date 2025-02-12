@@ -52,8 +52,7 @@ namespace EWeLink.Cube.Api.Models.Devices
         [JsonProperty("subnet")]
         public bool? Subnet { get; set; }
         
-        [JsonIgnore]
-        internal virtual ISet<string> AddPropertyList => new HashSet<string> { nameof(Name), nameof(DisplayCategory), nameof(Capabilities), nameof(Protocol), nameof(Manufacturer), nameof(FirmwareVersion), nameof(Model) };
+        internal virtual ISet<string> AddPropertyList(ApiVersion apiVersion) => new HashSet<string> { nameof(Name), nameof(DisplayCategory), nameof(Capabilities), nameof(Protocol), nameof(Manufacturer), nameof(FirmwareVersion), nameof(Model) };
 
         public void UpdateName(string name)
         {

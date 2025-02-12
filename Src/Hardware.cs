@@ -12,7 +12,7 @@ internal class Hardware(ILinkControl control) : IHardware
 
         try
         {
-            await control.MakeRequest<Link.EmptyData>("hardware/reboot", HttpMethod.Post);
+            await control.MakeRequest<Link.EmptyData>("hardware/reboot", null, HttpMethod.Post);
         }
         catch (RequestException)
         {
@@ -35,7 +35,7 @@ internal class Hardware(ILinkControl control) : IHardware
 
         try
         {
-            await control.MakeRequest<Link.EmptyData>("hardware/speaker", HttpMethod.Post, sound);
+            await control.MakeRequest<Link.EmptyData>("hardware/speaker", null, HttpMethod.Post, sound);
         }
         catch (RequestException)
         {

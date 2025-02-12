@@ -4,6 +4,7 @@ using System;
 using Extensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using EWeLink.Cube.Api.Models.Devices;
 
 public class ProtocolConverter : StringEnumConverter
 {
@@ -19,5 +20,10 @@ public class ProtocolConverter : StringEnumConverter
         Enum e = (Enum)value;
         value = e.GetEnumMemberValue()?.ToUpperInvariant();
         writer.WriteValue(value);
+    }
+
+    public override bool CanConvert(Type objectType)
+    {
+        return objectType == typeof(SubDeviceProtocol);
     }
 }

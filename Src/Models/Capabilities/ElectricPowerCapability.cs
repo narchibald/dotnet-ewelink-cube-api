@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 namespace EWeLink.Cube.Api.Models.Capabilities;
 
 [Capability("electric-power")]
-public class ElectricPowerCapability : Capability
+public class ElectricPowerCapability : Capability, ITimestampedValue<decimal>
 {
     [JsonProperty("electric-power")]
     [JsonConverter(typeof(IntToDecimalConverter), 2)]

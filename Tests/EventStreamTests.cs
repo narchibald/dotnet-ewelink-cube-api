@@ -73,6 +73,204 @@ public class EventStreamTests : HttpRequestTestBase, IAsyncLifetime
     }
     
     [Fact]
+    public async Task UpdateStateEvent_StateToggle_TimestampUpdate()
+    {
+        // Arrange
+        var cache = new DeviceCache();
+        cache.UpdateCache(new Tx2c()
+        {
+            SerialNumber = "982376",
+            State = new TwoStateToggle()
+        });
+
+        var json = JsonConvert.SerializeObject(new
+        {
+            endpoint = new
+            {
+                serial_number = "982376",
+            },
+            payload = new
+            {
+                toggle = new Dictionary<string, object>()
+                {
+                    { "2", new { toggleState = "on" } } 
+                }
+            }
+        });
+
+        await WriteLinesToStream(
+            "event: device#v1#updateDeviceState",
+            "data: " + json.Substring(0, 20),
+            "data: " + json.Substring(20),
+            "");
+        
+        var link = CreateLink(cache);
+        link.DeviceStateUpdated += UpdateEventHandler;
+        
+        // Act
+        await AwaitEvent();
+        
+        // Assert
+        VerifyHttpRequest();
+        Assert.NotNull(firedEvent);
+        var device = cache.GetDevice("982376") as Tx2c;
+        Assert.NotNull(device);
+        Assert.Null(device.State.Power);
+        Assert.Equal(SwitchState.On, device.State.Toggle.Two.State);
+        var state = firedEvent.State as TwoStateToggle;
+        Assert.NotNull(state);
+        Assert.Equal(SwitchState.On, state.Toggle.Two.State);
+        Assert.NotNull(state.Toggle.Two.UpdatedAt);
+    }
+    
+    [Fact]
+    public async Task UpdateStateEvent_StateToggleWithUpdateTime_TimestampUpdate()
+    {
+        // Arrange
+        var cache = new DeviceCache();
+        cache.UpdateCache(new Tx2c()
+        {
+            SerialNumber = "982376",
+            State = new TwoStateToggle()
+        });
+        
+        var expectedTime = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.Now.ToUnixTimeMilliseconds());
+
+        var json = JsonConvert.SerializeObject(new
+        {
+            endpoint = new
+            {
+                serial_number = "982376",
+            },
+            payload = new
+            {
+                toggle = new Dictionary<string, object>()
+                {
+                    { "2", new { toggleState = "on", updated_at = expectedTime.ToUnixTimeMilliseconds() } } 
+                }
+            }
+        });
+
+        await WriteLinesToStream(
+            "event: device#v1#updateDeviceState",
+            "data: " + json.Substring(0, 20),
+            "data: " + json.Substring(20),
+            "");
+        
+        var link = CreateLink(cache);
+        link.DeviceStateUpdated += UpdateEventHandler;
+        
+        // Act
+        await AwaitEvent();
+        
+        // Assert
+        VerifyHttpRequest();
+        Assert.NotNull(firedEvent);
+        var device = cache.GetDevice("982376") as Tx2c;
+        Assert.NotNull(device);
+        Assert.Null(device.State.Power);
+        Assert.Equal(SwitchState.On, device.State.Toggle.Two.State);
+        var state = firedEvent.State as TwoStateToggle;
+        Assert.NotNull(state);
+        Assert.Equal(SwitchState.On, state.Toggle.Two.State);
+        Assert.Equal(expectedTime, state.Toggle.Two.UpdatedAt);
+    }
+    
+    [Fact]
+    public async Task UpdateStateEvent_Capability_TimestampUpdate()
+    {
+        // Arrange
+        var cache = new DeviceCache();
+        cache.UpdateCache(new Power316D()
+        {
+            SerialNumber = "982376",
+            State = new PowerMeterSwitch()
+        });
+
+        var json = JsonConvert.SerializeObject(new
+        {
+            endpoint = new
+            {
+                serial_number = "982376",
+            },
+            payload = new
+            {
+                voltage = new { voltage = 230 },
+            }
+        });
+
+        await WriteLinesToStream(
+            "event: device#v1#updateDeviceState",
+            "data: " + json.Substring(0, 20),
+            "data: " + json.Substring(20),
+            "");
+        
+        var link = CreateLink(cache);
+        link.DeviceStateUpdated += UpdateEventHandler;
+        
+        // Act
+        await AwaitEvent();
+        
+        // Assert
+        VerifyHttpRequest();
+        Assert.NotNull(firedEvent);
+        var device = cache.GetDevice("982376") as Power316D;
+        Assert.NotNull(device);
+        var state = firedEvent.State as PowerMeterSwitch;
+        Assert.NotNull(state);
+        Assert.Equal(230, state.Voltage.Value);
+        Assert.NotNull(state.Voltage.UpdatedAt);
+    }
+    
+    [Fact]
+    public async Task UpdateStateEvent_CapabilityWithUpdateTime_TimestampUpdate()
+    {
+        // Arrange
+        var cache = new DeviceCache();
+        cache.UpdateCache(new Power316D()
+        {
+            SerialNumber = "982376",
+            State = new PowerMeterSwitch()
+        });
+
+        var expectedTime = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.Now.ToUnixTimeMilliseconds());
+        
+        var json = JsonConvert.SerializeObject(new
+        {
+            endpoint = new
+            {
+                serial_number = "982376",
+            },
+            payload = new
+            {
+                voltage = new { voltage = 230, updated_at = expectedTime.ToUnixTimeMilliseconds() },
+            }
+        });
+
+        await WriteLinesToStream(
+            "event: device#v1#updateDeviceState",
+            "data: " + json.Substring(0, 20),
+            "data: " + json.Substring(20),
+            "");
+        
+        var link = CreateLink(cache);
+        link.DeviceStateUpdated += UpdateEventHandler;
+        
+        // Act
+        await AwaitEvent();
+        
+        // Assert
+        VerifyHttpRequest();
+        Assert.NotNull(firedEvent);
+        var device = cache.GetDevice("982376") as Power316D;
+        Assert.NotNull(device);
+        var state = firedEvent.State as PowerMeterSwitch;
+        Assert.NotNull(state);
+        Assert.Equal(230, state.Voltage.Value);
+        Assert.Equal(expectedTime, state.Voltage.UpdatedAt);
+    }
+    
+    [Fact]
     public async Task UpdateStateEvent_PartEventFirst()
     {
         // Arrange
@@ -346,7 +544,7 @@ public class EventStreamTests : HttpRequestTestBase, IAsyncLifetime
     }
     
     private Link CreateLink(DeviceCache? cache = null)
-        => new Link(ipAddress, accessToken, 80, ApiVersion.v1, HttpClientFactory.Object, cache ?? new DeviceCache(), Mock.Of<ILoggerFactory>(x => x.CreateLogger(It.IsAny<string>()) == Mock.Of<ILogger>()));
+        => new Link(ipAddress, accessToken, 80, ApiVersion.v1, null, HttpClientFactory.Object, cache ?? new DeviceCache(), Mock.Of<ILoggerFactory>(x => x.CreateLogger(It.IsAny<string>()) == Mock.Of<ILogger>()));
 
     private async Task WriteLinesToStream(params string[] lines)
     {

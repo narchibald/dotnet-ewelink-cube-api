@@ -6,5 +6,5 @@ namespace EWeLink.Cube.Api.Models.Capabilities;
 public class ThreeToggleCapability : TwoToggleCapability
 {
     [JsonProperty("3")]
-    public ToggleState? Three {get;set;}
+    public ToggleState? Three { get; set; }
 }

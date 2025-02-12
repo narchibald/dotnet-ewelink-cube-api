@@ -57,5 +57,5 @@ internal interface ILinkControl
     
     string EnsureAccessToken();
     
-    Task<T> MakeRequest<T>(string path, HttpMethod? method = null, object? content = null);
+    Task<T> MakeRequest<T>(string path, string? query = null, HttpMethod? method = null, object? content = null);
 }

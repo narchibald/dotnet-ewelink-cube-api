@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using EWeLink.Cube.Api.Models;
@@ -31,11 +32,12 @@ public class Link : ILink, ILinkControl
     private int port = 80;
     private bool portLocked = false;
     private ApiVersion apiVersion = ApiVersion.v2;
+    private string? applicationName;
     private bool apiLocked = false;
     private bool initialized = false;
     private Action<ILink, ILinkEvent<SubDeviceState>>? deviceStateUpdatedEvent;
 
-    public Link(IPAddress ipAddress, string? accessToken, int? port,  ApiVersion? apiVersion, IHttpClientFactory httpClientFactory, IDeviceCache deviceCache, ILoggerFactory loggerFactory)
+    public Link(IPAddress ipAddress, string? accessToken, int? port, ApiVersion? apiVersion, string? applicationName, IHttpClientFactory httpClientFactory, IDeviceCache deviceCache, ILoggerFactory loggerFactory)
     {
         this.IpAddress = ipAddress;
         if (port is not null)
@@ -51,6 +53,7 @@ public class Link : ILink, ILinkControl
         }
 
         this.AccessToken = accessToken;
+        this.applicationName = applicationName;
         this.httpClientFactory = httpClientFactory;
         this.deviceCache = deviceCache;
         this.loggerFactory = loggerFactory;
@@ -117,11 +120,17 @@ public class Link : ILink, ILinkControl
         
         try
         {
+            string query = null;
+            if (apiVersion == ApiVersion.v2)
+            {
+                query = $"app_name={GetApplicationName()}";
+            }
+
             while (!cancellationToken.Value.IsCancellationRequested)
             {
                 try
                 {
-                    var response = await MakeRequest<AccessTokenData>("bridge/access_token");
+                    var response = await MakeRequest<AccessTokenData>($"bridge/access_token", query);
                     if (!string.IsNullOrEmpty(response.Token))
                         AccessToken = response.Token;
                     return response.Token;
@@ -157,7 +166,7 @@ public class Link : ILink, ILinkControl
     {
         EnsureAccessToken();
 
-        var response = await MakeRequest<DeviceAdd>("devices", HttpMethod.Post, camera, contractResolver: new DeviceContractResolver(), extraConverters: [ new ProtocolConverter() ]);
+        var response = await MakeRequest<DeviceAdd>("devices", null, HttpMethod.Post, camera, contractResolver: new DeviceContractResolver(ApiVersion), extraConverters: [ new ProtocolConverter() ]);
         return response.SerialNumber;
     }
 
@@ -167,7 +176,7 @@ public class Link : ILink, ILinkControl
 
         try
         {
-            await MakeRequest<EmptyData>($"devices/{serialNumber}", HttpMethod.Delete);
+            await MakeRequest<EmptyData>($"devices/{serialNumber}", method: HttpMethod.Delete);
             deviceCache.DeleteDevice(serialNumber);
         }
         catch (RequestException ex) when(ex.Error is 110006)
@@ -230,7 +239,7 @@ public class Link : ILink, ILinkControl
         var update = new UpdateDeviceState(new PowerCapability { State = state });
         try
         {
-            await MakeRequest<EmptyData>($"devices/{serialNumber}", HttpMethod.Put, update);
+            await MakeRequest<EmptyData>($"devices/{serialNumber}", null, HttpMethod.Put, update);
         }
         catch (RequestException ex) when(ex.Error is 110006)
         {
@@ -262,7 +271,7 @@ public class Link : ILink, ILinkControl
         var update = new UpdateDeviceState(capability);
         try
         {
-            await MakeRequest<EmptyData>($"devices/{serialNumber}", HttpMethod.Put, update);
+            await MakeRequest<EmptyData>($"devices/{serialNumber}", null, HttpMethod.Put, update);
         }
         catch (RequestException ex) when(ex.Error is 110006)
         {
@@ -279,7 +288,7 @@ public class Link : ILink, ILinkControl
         var update = new UpdateDeviceState(new PercentageCapability { Value = percent });
         try
         {
-            await MakeRequest<EmptyData>($"devices/{serialNumber}", HttpMethod.Put, update);
+            await MakeRequest<EmptyData>($"devices/{serialNumber}", null, HttpMethod.Put, update);
         }
         catch (RequestException ex) when(ex.Error is 110006)
         {
@@ -302,8 +311,8 @@ public class Link : ILink, ILinkControl
         StopEventStream().Wait();
     }
 
-    async Task<T> ILinkControl.MakeRequest<T>(string path, HttpMethod? method, object? content)
-        => await MakeRequest<T>(path, method, content);
+    async Task<T> ILinkControl.MakeRequest<T>(string path, string? query, HttpMethod? method, object? content)
+        => await MakeRequest<T>(path, query, method, content);
 
     private async Task EnsureInitialised()
     {
@@ -376,7 +385,7 @@ public class Link : ILink, ILinkControl
         }
     }
 
-    private async Task<T> MakeRequest<T>(string path, HttpMethod? method = null, object? content = null, bool negotiateApiVersion = true, IContractResolver? contractResolver = null, IList<JsonConverter>? extraConverters = null)
+    private async Task<T> MakeRequest<T>(string path, string? query = null, HttpMethod? method = null, object? content = null, bool negotiateApiVersion = true, IContractResolver? contractResolver = null, IList<JsonConverter>? extraConverters = null)
     {
         extraConverters ??= [];
         
@@ -388,7 +397,8 @@ public class Link : ILink, ILinkControl
             UriBuilder uri = new($"http://{IpAddress}")
             {
                 Path = $"{BasePath}{path}",
-                Port = withPort
+                Port = withPort,
+                Query = query
             };
 
             var httpClient = this.httpClientFactory.CreateClient();
@@ -480,6 +490,19 @@ public class Link : ILink, ILinkControl
         }
 
         return response.Data!;
+    }
+
+    public string GetApplicationName()
+    {
+        if (string.IsNullOrEmpty(applicationName))
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var productAttribute = assembly.GetCustomAttribute<AssemblyProductAttribute>();
+            string? name = productAttribute?.Product ?? assembly.GetName().Name;
+            applicationName = name;
+        }
+        
+        return applicationName!;
     }
 
     public class OpenApiResponse<T>
